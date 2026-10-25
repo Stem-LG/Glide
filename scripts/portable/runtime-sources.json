@@ -1,0 +1,22 @@
+[
+  {
+    "path": "runtime-x86_64",
+    "url": "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64",
+    "sha256": "617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46"
+  },
+  {
+    "path": "source-bundle/appimage-runtime/type2-runtime-fedfad5.tar.gz",
+    "url": "https://api.github.com/repos/AppImage/type2-runtime/tarball/fedfad5",
+    "sha256": "a1601c596b81768626afca9abecf0137092d2d7b281bb6c4b9067d2c79e44a21"
+  },
+  {
+    "path": "source-bundle/appimage-runtime/fuse-3.15.0.tar.xz",
+    "url": "https://github.com/libfuse/libfuse/releases/download/fuse-3.15.0/fuse-3.15.0.tar.xz",
+    "sha256": "70589cfd5e1cff7ccd6ac91c86c01be340b227285c5e200baa284e401eea2ca0"
+  },
+  {
+    "path": "source-bundle/appimage-runtime/squashfuse-0.5.2.tar.gz",
+    "url": "https://github.com/vasi/squashfuse/archive/0.5.2.tar.gz",
+    "sha256": "db0238c5981dabbd80ee09ae15387f390091668ca060a7bc38047912491443d3"
+  }
+]

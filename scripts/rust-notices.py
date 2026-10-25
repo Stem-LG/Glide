@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Collect Cargo metadata and original license notices from vendored sources."""
-import pathlib, shutil, tomllib
+import pathlib, shutil
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 root = pathlib.Path(__file__).resolve().parent.parent
 vendor = root / 'dist/source-bundle/vendor'
 out = root / 'dist/rust-notices'

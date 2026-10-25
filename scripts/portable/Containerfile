@@ -1,0 +1,22 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN sed -i 's/^# deb-src /deb-src /' /etc/apt/sources.list && apt-get update && apt-get install -y --no-install-recommends \
+    build-essential pkg-config curl ca-certificates git python3 python3-pip python3-aiohttp \
+    ninja-build sassc gettext flex bison gperf cmake libffi-dev libpcre2-dev zlib1g-dev libmount-dev \
+    libjpeg-dev libpng-dev libtiff-dev libgdk-pixbuf-2.0-dev libepoxy-dev libgraphene-1.0-dev \
+    libfontconfig1-dev libfreetype6-dev libfribidi-dev libharfbuzz-dev libcairo2-dev libpango1.0-dev \
+    libwayland-dev libxkbcommon-dev wayland-protocols libx11-dev libxext-dev libxi-dev libxrandr-dev \
+    libxcursor-dev libxdamage-dev libxfixes-dev libxinerama-dev libegl1-mesa-dev libgles2-mesa-dev libdrm-dev libgbm-dev \
+    libxml2-dev librsvg2-dev libappstream-dev libdbus-1-dev libcloudproviders-dev libxkbregistry-dev \
+    adwaita-icon-theme hicolor-icon-theme shared-mime-info squashfs-tools file patchelf \
+    xvfb xauth dbus-x11 fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+RUN python3 -m pip install --no-cache-dir meson==1.11.0 packaging==25.0 tomli==2.2.1
+ENV PATH=/opt/glide/bin:/opt/cargo/bin:/usr/local/bin:/usr/bin:/bin \
+    PKG_CONFIG_PATH=/opt/glide/lib/pkgconfig:/opt/glide/share/pkgconfig \
+    LD_LIBRARY_PATH=/opt/glide/lib \
+    CARGO_HOME=/opt/cargo RUSTUP_HOME=/opt/rustup \
+    CARGO_TARGET_DIR=/work/target/portable
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh && \
+    sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain 1.97.1 --component rustfmt,clippy && \
+    rm /tmp/rustup-init.sh
+WORKDIR /work

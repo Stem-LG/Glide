@@ -5,12 +5,12 @@ original licenses; inclusion does not relicense them.
 
 The release's `rust-crates.tsv` records all locked Cargo dependencies (including
 platform-specific and development dependencies). `native-packages.tsv` maps the
-bundled Linux libraries, schemas, and icon themes to their exact Fedora source
-RPMs and package license expressions. Fedora expressions can cover more files
-than the individual library shipped in Glide.
+Ubuntu-provided bundled libraries and icon themes to their exact Ubuntu source
+packages. Additional UI libraries are built from the checksum-pinned upstream
+sources listed in `scripts/portable/sources.json` and `build-info.json`.
 
 The AppImage contains original native package notices under `usr/share/licenses`,
-Rust crate notices under `usr/share/licenses/glide-rust`, and Rust standard-library
+Rust crate notices under `usr/share/licenses/rust-crates`, and Rust standard-library
 notices under `usr/share/licenses/rust-stdlib`. Full crate sources and their
 original notices are also in the accompanying source bundle.
 
@@ -23,12 +23,13 @@ and mimalloc; consult the upstream Alpine build recipe for how these are linked.
 
 ## Corresponding sources
 
-Download `Glide-0.1.6-sources.tar.gz` beside the AppImage. It includes:
+Download `Glide-0.1.7-sources.tar.gz` beside the AppImage. It includes:
 
 - Glide's release source and build/packaging scripts;
 - all Rust crates from `Cargo.lock`, with a Cargo vendor configuration;
-- exact source RPMs for the bundled native packages, including upstream sources,
-  Fedora patches, and RPM spec build instructions;
+- exact Ubuntu source packages for bundled distro libraries, including upstream
+  sources, Debian patches, and build instructions;
+- pinned upstream tarballs for the newer UI stack and its build recipe;
 - AppImage runtime source, build recipe and patches, libfuse and squashfuse sources;
 - the pinned runtime executable used to assemble this AppImage, and inventories.
 

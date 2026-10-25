@@ -1,0 +1,56 @@
+[
+  {
+    "name": "glib",
+    "version": "2.86.5",
+    "url": "https://download.gnome.org/sources/glib/2.86/glib-2.86.5.tar.xz",
+    "sha256": "ce85a947bb8b3c0204dbeff79aec39bcb46371c6fafb64ba5b8726c71e038d5f"
+  },
+  {
+    "name": "harfbuzz",
+    "version": "15.0.0",
+    "url": "https://github.com/harfbuzz/harfbuzz/releases/download/15.0.0/harfbuzz-15.0.0.tar.xz",
+    "sha256": "968536e9abd782f07f7954044c0c4020199fcdd39b41d221ec42d2a3be4a44df"
+  },
+  {
+    "name": "cairo",
+    "version": "1.18.4",
+    "url": "https://www.cairographics.org/releases/cairo-1.18.4.tar.xz",
+    "sha256": "445ed8208a6e4823de1226a74ca319d3600e83f6369f99b14265006599c32ccb"
+  },
+  {
+    "name": "fontconfig",
+    "version": "2.18.3",
+    "url": "https://gitlab.freedesktop.org/api/v4/projects/890/packages/generic/fontconfig/2.18.3/fontconfig-2.18.3.tar.xz",
+    "sha256": "4f7b554a38cdf78c033f666c8871f3749e14a094f65a07f630c91ed0b43d35e3"
+  },
+  {
+    "name": "pango",
+    "version": "1.56.4",
+    "url": "https://download.gnome.org/sources/pango/1.56/pango-1.56.4.tar.xz",
+    "sha256": "17065e2fcc5f5a5bdbffc884c956bfc7c451a96e8c4fb2f8ad837c6413cb5a01"
+  },
+  {
+    "name": "wayland",
+    "version": "1.24.0",
+    "url": "https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.24.0/downloads/wayland-1.24.0.tar.xz",
+    "sha256": "82892487a01ad67b334eca83b54317a7c86a03a89cfadacfef5211f11a5d0536"
+  },
+  {
+    "name": "wayland-protocols",
+    "version": "1.45",
+    "url": "https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.45/downloads/wayland-protocols-1.45.tar.xz",
+    "sha256": "4d2b2a9e3e099d017dc8107bf1c334d27bb87d9e4aff19a0c8d856d17cd41ef0"
+  },
+  {
+    "name": "gtk",
+    "version": "4.20.4",
+    "url": "https://download.gnome.org/sources/gtk/4.20/gtk-4.20.4.tar.xz",
+    "sha256": "a21f825bd44afc4dd99ba4eea8ff57c8f2e51085cb402a68ed4cbb35299826a4"
+  },
+  {
+    "name": "libadwaita",
+    "version": "1.8.7",
+    "url": "https://download.gnome.org/sources/libadwaita/1.8/libadwaita-1.8.7.tar.xz",
+    "sha256": "db61e9ed0f47a210869d4d36809b1deea140776c58632bdb6704691d7d6e7abb"
+  }
+]

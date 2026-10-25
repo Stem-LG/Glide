@@ -1,7 +1,7 @@
 <p align="center"><img src="data/io.github.glide.Touchpad.svg" width="96" alt="Glide icon"></p>
 <h1 align="center">Glide</h1>
 <p align="center"><strong>Your phone. Your touchpad.</strong><br>Turn a touchscreen into a native Linux touchpad, with smooth GNOME gestures.</p>
-<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.6">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.7">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
 
 Glide pairs a native **Rust + GTK4/libadwaita** desktop app with a lightweight web
 controller. Open it on your phone or tablet, connect over your local network, and
@@ -9,10 +9,10 @@ use the whole screen to move, scroll, pinch, and navigate your desktop.
 
 No phone app to install. No cloud service. No account.
 
-> **Initial preview — v0.1.6.** The x86_64 AppImage is built and tested on
-> **Fedora 44, GNOME 50, Wayland**. It is not a universal Linux binary: older
-> distributions may need a source build. Use it only on a trusted local network;
-> the current HTTP/WebSocket connection is not encrypted.
+> **Preview — v0.1.7.** The portable x86_64 AppImage targets **glibc 2.35+**
+> (Ubuntu 22.04 and newer compatible Linux systems). It bundles its GTK UI stack.
+> Native gestures have been tested on **GNOME 50 / Wayland**. Use it only on a
+> trusted local network; the current HTTP/WebSocket connection is not encrypted.
 
 <p align="center"><img src="docs/images/touchpad.png" width="260" alt="Glide's full-screen touch surface"><img src="docs/images/preferences.png" width="260" alt="Cursor and scroll speeds saved on the desktop"></p>
 
@@ -34,7 +34,7 @@ No phone app to install. No cloud service. No account.
 
 ### 1. Download and launch
 
-Download `Glide-0.1.6-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.6).
+Download `Glide-0.1.7-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.7).
 
 #### Gear Lever (recommended)
 
@@ -62,14 +62,14 @@ Alternatively, place the AppImage in a permanent location if you plan to enable
 **Start at login**, then:
 
 ```sh
-chmod +x Glide-0.1.6-x86_64.AppImage
-./Glide-0.1.6-x86_64.AppImage
+chmod +x Glide-0.1.7-x86_64.AppImage
+./Glide-0.1.7-x86_64.AppImage
 ```
 
 If FUSE is unavailable:
 
 ```sh
-./Glide-0.1.6-x86_64.AppImage --appimage-extract-and-run
+./Glide-0.1.7-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The release includes `SHA256SUMS` to verify downloaded artifacts. It also includes
@@ -134,11 +134,12 @@ also works without a tray host; launching it again reopens its window.
 
 | Item | Current support |
 | --- | --- |
-| Packaged build | Linux x86_64; Fedora 44 build baseline |
+| Packaged build | Linux x86_64, glibc 2.35+; Ubuntu 22.04 build baseline |
 | Verified desktop | GNOME 50 on Wayland |
 | Controller | Modern touchscreen browser with Pointer Events and WebSockets |
 | Input | `/dev/uinput`, interpreted by libinput |
-| Other desktops/distributions | Not yet verified; source builds may work |
+| Other desktops | Gesture behavior depends on the compositor/libinput; needs testing |
+| Alpine/musl, glibc older than 2.35, ARM | Not supported by this AppImage |
 | Transport | HTTP/WebSocket on a trusted LAN, default port `8766` |
 
 - **Cannot connect:** check the displayed IP, network isolation/guest Wi-Fi, and your
@@ -148,11 +149,18 @@ also works without a tray host; launching it again reopens its window.
 - **Input unavailable:** check the [uinput setup](data/setup/README.md).
 - **Missing tray icon:** check GNOME's AppIndicator support. You can always reopen
   Glide by launching the same AppImage.
-- **Missing `GLIBC_*` or another host-library version:** this AppImage was built on
-  Fedora 44. Build from source for your distribution; bundling GTK does not make
-  the host libc portable.
+- **Missing `GLIBC_*` or another host-library version:** this AppImage was built against
+  an Ubuntu 22.04 / glibc 2.35 baseline. Systems with older glibc or musl need a
+  different build; bundling GTK does not replace the host libc.
 - **New controls or movement fixes do not appear:** refresh the phone page after
   updating the desktop app.
+
+The packaged 0.1.7 AppImage passed startup, pairing, settings persistence, and
+GTK-window checks in clean **Ubuntu 22.04, Ubuntu 24.04, Debian 12, and Fedora 44**
+containers. These checks use a virtual display; they do not establish full gesture
+support on each distribution's desktop. Native helper gesture/speed tests are
+run separately on Fedora, using an exclusively grabbed virtual test device.
+See the [compatibility report](docs/COMPATIBILITY.md) for the exact scope.
 
 Do not expose Glide's port to the Internet. Pairing tokens and input are currently
 unencrypted in transit. See [SECURITY.md](SECURITY.md) for the security model.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.7 — 2026-10-25
+
+- Portable x86_64 AppImage built against Ubuntu 22.04 / glibc 2.35.
+- Pinned GTK/libadwaita and supporting libraries built from source on that baseline.
+- Image loaders and their dependencies included for reliable icon/SVG loading.
+- Packaging rejects bundled ELF files requiring a newer glibc.
+- Clean-container compatibility checks and a portable-build CI workflow.
+- Per-device settings and native input behavior are unchanged.
+
 ## 0.1.6 — 2026-10-25
 
 Initial public preview.

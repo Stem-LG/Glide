@@ -1,0 +1,51 @@
+name: Portable AppImage
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build portable AppImage and corresponding sources
+        run: |
+          docker build -f scripts/portable/Containerfile -t glide-portable .
+          docker run --rm -v "$PWD:/work" glide-portable bash -c 'git config --global --add safe.directory /work && bash scripts/portable/build.sh && python3 scripts/portable/collect-sources.py && python3 scripts/portable/archive-sources.py'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-release
+          compression-level: 0
+          path: |
+            dist/portable/*.AppImage
+            dist/portable/*-sources.tar.gz
+            dist/portable/*.tsv
+            dist/portable/build-info.json
+            dist/portable/SHA256SUMS
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['ubuntu:22.04', 'ubuntu:24.04', 'debian:12', 'fedora:44']
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install runtime and test tools
+        run: |
+          if command -v apt-get; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ca-certificates python3 python3-aiohttp libegl1 libgl1 libgles2 xvfb xauth x11-utils dbus-x11 fonts-dejavu-core
+          else
+            dnf install -y git python3 python3-aiohttp libglvnd-egl libglvnd-glx libglvnd-gles mesa-dri-drivers xorg-x11-server-Xvfb xorg-x11-xauth xwininfo dbus-daemon dejavu-sans-fonts
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: portable-release
+          path: dist/portable
+      - name: Test packaged application
+        run: |
+          ln -s "$GITHUB_WORKSPACE" /work
+          chmod +x dist/portable/*.AppImage
+          bash scripts/portable/test-container.sh "$GITHUB_WORKSPACE/$(ls dist/portable/*.AppImage)"
