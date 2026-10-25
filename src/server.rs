@@ -351,6 +351,18 @@ pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
             }),
         )
         .route(
+            "/taps.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/taps.js"),
+                )
+            }),
+        )
+        .route(
             "/style.css",
             get(|| async {
                 (

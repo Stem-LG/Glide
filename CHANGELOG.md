@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Adjustable 5–100 ms haptic pulse duration, saved per device with live testing.
+
+- Optional short haptic feedback for touchpad taps on supported phone browsers.
+- Save tap feedback per device on the desktop; control it from either UI.
+- Keep native one-, two-, and three-finger tap behavior and gestures unchanged.
+
 ## 0.1.7 — 2026-10-25
 
 - Portable x86_64 AppImage built against Ubuntu 22.04 / glibc 2.35.

@@ -21,6 +21,8 @@ pub struct DeviceSettings {
     pub cursor_speed: f64,
     pub scroll_speed: f64,
     pub show_points: bool,
+    pub haptics: bool,
+    pub haptic_duration_ms: u16,
     pub theme: String,
 }
 impl Default for DeviceSettings {
@@ -29,6 +31,8 @@ impl Default for DeviceSettings {
             cursor_speed: 1.0,
             scroll_speed: 1.0,
             show_points: false,
+            haptics: true,
+            haptic_duration_ms: 25,
             theme: "system".into(),
         }
     }
@@ -40,6 +44,7 @@ impl DeviceSettings {
                 && (0.25..=2.0).contains(&self.cursor_speed)
                 && self.scroll_speed.is_finite()
                 && (0.25..=2.0).contains(&self.scroll_speed)
+                && (5..=100).contains(&self.haptic_duration_ms)
                 && ["system", "dark", "light"].contains(&self.theme.as_str()),
             "Invalid device settings"
         );
@@ -150,7 +155,44 @@ mod tests {
         assert_eq!(d.settings, DeviceSettings::default());
     }
     #[test]
+    fn old_settings_enable_optional_feedback() {
+        let settings: DeviceSettings = serde_json::from_str(
+            r#"{"cursor_speed":1.5,"scroll_speed":0.5,"show_points":true,"theme":"dark"}"#,
+        )
+        .unwrap();
+        assert!(settings.haptics);
+        assert_eq!(settings.haptic_duration_ms, 25);
+        assert_eq!(settings.cursor_speed, 1.5);
+        let disabled = DeviceSettings {
+            haptics: false,
+            ..settings
+        };
+        let restored: DeviceSettings =
+            serde_json::from_str(&serde_json::to_string(&disabled).unwrap()).unwrap();
+        assert!(!restored.haptics);
+    }
+    #[test]
     fn reject_invalid_settings() {
+        for duration in [0, 4, 101, u16::MAX] {
+            assert!(
+                DeviceSettings {
+                    haptic_duration_ms: duration,
+                    ..Default::default()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        for duration in [5, 25, 100] {
+            assert!(
+                DeviceSettings {
+                    haptic_duration_ms: duration,
+                    ..Default::default()
+                }
+                .validate()
+                .is_ok()
+            );
+        }
         assert!(
             DeviceSettings {
                 theme: "invalid".into(),

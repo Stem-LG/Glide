@@ -106,6 +106,16 @@ device can control the touchpad at a time. **Forget device** revokes its pairing
 | Three fingers | GNOME workspace/overview gestures |
 | Top-right menu | Fullscreen, preferences, disconnect, reconnect |
 
+**Tap feedback:** Glide can give a brief vibration for short one-, two-, and
+three-finger taps. Toggle **Tap feedback** in the web Preferences or the desktop
+app's device settings; the preference is saved on the desktop. Feedback uses the
+browser's Vibration API, so unsupported browsers (including Safari on iPhone)
+simply stay silent. Phone settings may also suppress vibration. Use **Test vibration**
+in web Preferences to feel the selected **Pulse duration** (5–100 ms, default 25 ms); its result reports browser acceptance,
+not proof that the phone vibrated. This is local tap
+feedback, not confirmation that the desktop accepted a click; GNOME still controls
+tap-to-click and tap-and-drag.
+
 Natural scrolling, tap-to-click, acceleration, and gesture availability also depend
 on your desktop settings. Fullscreen support depends on the phone browser. The web
 controller currently focuses on touch input; keyboard and media controls are not included.

@@ -32,10 +32,13 @@ async def main():
       return r.status,await r.json() if r.status==200 else await r.text()
     status,paired=await pair(url,code);assert status==200 and 'token' in paired
     ws=await connect(client,url,paired['token']);ready=await receive(ws,'ready');assert ready['settings']['cursor_speed']==1
-    settings={'cursor_speed':1.7,'scroll_speed':.6,'show_points':True,'theme':'dark'}
+    settings={'cursor_speed':1.7,'scroll_speed':.6,'show_points':True,'haptics':False,'haptic_duration_ms':42,'theme':'dark'}
     await ws.send_json({'settings':settings});saved=await receive(ws,'settings_saved');assert saved['settings']==settings
     persisted=json.loads(Path(directory,'config.json').read_text());assert persisted['devices'][0]['settings']==settings
     await ws.send_json({'settings':{**settings,'scroll_speed':9}});await receive(ws,'settings_error');assert json.loads(Path(directory,'config.json').read_text())['devices'][0]['settings']==settings
+    for invalid in [0,4,101,-1,25.5,'25']:
+     await ws.send_json({'settings':{**settings,'haptic_duration_ms':invalid}});await receive(ws,'settings_error')
+     assert json.loads(Path(directory,'config.json').read_text())['devices'][0]['settings']==settings
     await ws.close();proc.terminate();await proc.wait()
     old_url=url;proc,url,code=await start();assert url!=old_url
     # Existing credential still maps to the stable profile after restart.

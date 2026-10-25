@@ -449,6 +449,25 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         .active(device.settings.show_points)
         .build();
     group.add(&dots);
+    let haptics = adw::SwitchRow::builder()
+        .title("Tap feedback")
+        .subtitle("Brief vibration on supported phones and browsers")
+        .active(device.settings.haptics)
+        .build();
+    group.add(&haptics);
+    let pulse = gtk::SpinButton::with_range(5.0, 100.0, 1.0);
+    pulse.set_value(f64::from(device.settings.haptic_duration_ms));
+    pulse.set_valign(gtk::Align::Center);
+    pulse.update_property(&[gtk::accessible::Property::Label(
+        "Pulse duration in milliseconds",
+    )]);
+    let pulse_row = adw::ActionRow::builder()
+        .title("Pulse duration")
+        .subtitle("5–100 milliseconds · shorter pulses feel crisper")
+        .build();
+    pulse_row.add_suffix(&pulse);
+    pulse_row.set_activatable_widget(Some(&pulse));
+    group.add(&pulse_row);
     let theme = gtk::DropDown::from_strings(&["System", "Dark", "Light"]);
     theme.set_selected(match device.settings.theme.as_str() {
         "dark" => 1,
@@ -479,6 +498,8 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     let c = cursor.clone();
     let sc = scroll.clone();
     let d = dots.clone();
+    let h = haptics.clone();
+    let duration = pulse.clone();
     let t = theme.clone();
     let msg = message.clone();
     let persist: Rc<dyn Fn()> = Rc::new(move || {
@@ -489,6 +510,8 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
             cursor_speed: c.value(),
             scroll_speed: sc.value(),
             show_points: d.is_active(),
+            haptics: h.is_active(),
+            haptic_duration_ms: duration.value_as_int() as u16,
             theme: ["system", "dark", "light"][t.selected() as usize].into(),
         };
         match server::save_settings(&mut st.lock().unwrap(), &device_id, settings) {
@@ -502,6 +525,10 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     scroll.connect_value_changed(move |_| cb());
     let cb = persist.clone();
     dots.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    haptics.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    pulse.connect_value_changed(move |_| cb());
     theme.connect_selected_notify(move |_| persist());
     let weak = dialog.downgrade();
     let device_id = id.to_owned();
@@ -529,6 +556,10 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
             scroll.set_value(settings.scroll_speed);
         }
         dots.set_active(settings.show_points);
+        haptics.set_active(settings.haptics);
+        if pulse.value_as_int() != i32::from(settings.haptic_duration_ms) {
+            pulse.set_value(f64::from(settings.haptic_duration_ms));
+        }
         theme.set_selected(match settings.theme.as_str() {
             "dark" => 1,
             "light" => 2,
