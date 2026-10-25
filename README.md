@@ -35,7 +35,31 @@ No phone app to install. No cloud service. No account.
 ### 1. Download and launch
 
 Download `Glide-0.1.6-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.6).
-Place it in a permanent location if you plan to enable **Start at login**, then:
+
+#### Gear Lever (recommended)
+
+We recommend [Gear Lever](https://gearlever.mijorus.it/) to organize Glide's
+AppImage, add it to your app menu, and manage future updates. Install it from
+[Flathub](https://flathub.org/apps/it.mijorus.gearlever), open the downloaded
+AppImage with Gear Lever, and add it to your app menu.
+
+In Glide's update settings **inside Gear Lever**, select **GitHub** and enter:
+
+| Setting | Value |
+| --- | --- |
+| Username/Repo | `Stem-LG/Glide` |
+| Release file name | `Glide-*-x86_64.AppImage` |
+| Allow pre-releases | On, to receive the current preview releases |
+
+This release needs that one-time update configuration. Quit Glide from its tray
+menu before applying an update, then launch it again. Enable Glide's **Start at
+login** after Gear Lever has moved it to its managed folder. If you move it later,
+toggle **Start at login** off and on to refresh the saved path.
+
+#### Manual launch
+
+Alternatively, place the AppImage in a permanent location if you plan to enable
+**Start at login**, then:
 
 ```sh
 chmod +x Glide-0.1.6-x86_64.AppImage
