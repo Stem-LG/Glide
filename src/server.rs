@@ -213,6 +213,7 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
     let mut last_settings = owner.settings.clone();
     let mut ticker = tokio::time::interval(Duration::from_millis(250));
     let mut last = Instant::now();
+    let mut last_media: Option<Instant> = None;
     loop {
         tokio::select! {
         _=ticker.tick()=>{
@@ -250,11 +251,15 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
             let Some(device)=s.config.devices.iter().find(|d|d.id==owner.id && d.hash==owner.hash) else{break};
             frame.cursor_speed=device.settings.cursor_speed;
             frame.scroll_speed=device.settings.scroll_speed;
+            if frame.media.is_some() && (!device.settings.media_controls || last_media.is_some_and(|t|t.elapsed()<Duration::from_millis(75))) {
+                frame.media=None;
+            }
+            if frame.media.is_some() { last_media=Some(Instant::now()); }
             s.helper.clone()
          };
-         let seq=frame.seq;let n=frame.points.len();
+         let seq=frame.seq;let n=frame.points.len();let media=frame.media;
          if tx.is_none_or(|tx|tx.try_send(frame).is_err()){break;}
-         if ws.send(Message::Text(json!({"ack":seq,"contacts":n}).to_string().into())).await.is_err(){break;}
+         if ws.send(Message::Text(json!({"ack":seq,"contacts":n,"media":media}).to_string().into())).await.is_err(){break;}
         }
         }
     }
@@ -359,6 +364,18 @@ pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
                         ("cache-control", "no-store"),
                     ],
                     include_str!("../web/taps.js"),
+                )
+            }),
+        )
+        .route(
+            "/media.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/media.js"),
                 )
             }),
         )

@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.8 — 2026-10-25
 
-- Adjustable 5–100 ms haptic pulse duration, saved per device with live testing.
-
-- Optional short haptic feedback for touchpad taps on supported phone browsers.
-- Save tap feedback per device on the desktop; control it from either UI.
-- Keep native one-, two-, and three-finger tap behavior and gestures unchanged.
+- Optional four-finger media controls: tap for play/pause, swipe up/down for volume,
+  and left/right for previous/next track. Saved per device and off by default.
+- Adjustable 5–100 ms tap vibration with a live test, saved per device on the desktop.
+- Both settings are available in the web controller and desktop app.
+- Guard finger transitions so reserved media gestures do not leak into desktop input.
+- Fix the browser timer binding that prevented pairing in an early media preview.
+- Add gesture, browser startup, media-key, and settings-persistence regression tests.
 
 ## 0.1.7 — 2026-10-25
 

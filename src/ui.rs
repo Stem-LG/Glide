@@ -449,6 +449,12 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         .active(device.settings.show_points)
         .build();
     group.add(&dots);
+    let media_controls = adw::SwitchRow::builder()
+        .title("Four-finger media controls")
+        .subtitle("Tap: play/pause · up/down: volume · left/right: previous/next")
+        .active(device.settings.media_controls)
+        .build();
+    group.add(&media_controls);
     let haptics = adw::SwitchRow::builder()
         .title("Tap feedback")
         .subtitle("Brief vibration on supported phones and browsers")
@@ -499,6 +505,7 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     let sc = scroll.clone();
     let d = dots.clone();
     let h = haptics.clone();
+    let media = media_controls.clone();
     let duration = pulse.clone();
     let t = theme.clone();
     let msg = message.clone();
@@ -511,6 +518,7 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
             scroll_speed: sc.value(),
             show_points: d.is_active(),
             haptics: h.is_active(),
+            media_controls: media.is_active(),
             haptic_duration_ms: duration.value_as_int() as u16,
             theme: ["system", "dark", "light"][t.selected() as usize].into(),
         };
@@ -527,6 +535,8 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     dots.connect_active_notify(move |_| cb());
     let cb = persist.clone();
     haptics.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    media_controls.connect_active_notify(move |_| cb());
     let cb = persist.clone();
     pulse.connect_value_changed(move |_| cb());
     theme.connect_selected_notify(move |_| persist());
@@ -557,6 +567,7 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         }
         dots.set_active(settings.show_points);
         haptics.set_active(settings.haptics);
+        media_controls.set_active(settings.media_controls);
         if pulse.value_as_int() != i32::from(settings.haptic_duration_ms) {
             pulse.set_value(f64::from(settings.haptic_duration_ms));
         }

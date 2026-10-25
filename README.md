@@ -1,7 +1,7 @@
 <p align="center"><img src="data/io.github.glide.Touchpad.svg" width="96" alt="Glide icon"></p>
 <h1 align="center">Glide</h1>
 <p align="center"><strong>Your phone. Your touchpad.</strong><br>Turn a touchscreen into a native Linux touchpad, with smooth GNOME gestures.</p>
-<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.7">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.8">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
 
 Glide pairs a native **Rust + GTK4/libadwaita** desktop app with a lightweight web
 controller. Open it on your phone or tablet, connect over your local network, and
@@ -9,7 +9,7 @@ use the whole screen to move, scroll, pinch, and navigate your desktop.
 
 No phone app to install. No cloud service. No account.
 
-> **Preview — v0.1.7.** The portable x86_64 AppImage targets **glibc 2.35+**
+> **Preview — v0.1.8.** The portable x86_64 AppImage targets **glibc 2.35+**
 > (Ubuntu 22.04 and newer compatible Linux systems). It bundles its GTK UI stack.
 > Native gestures have been tested on **GNOME 50 / Wayland**. Use it only on a
 > trusted local network; the current HTTP/WebSocket connection is not encrypted.
@@ -34,7 +34,7 @@ No phone app to install. No cloud service. No account.
 
 ### 1. Download and launch
 
-Download `Glide-0.1.7-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.7).
+Download `Glide-0.1.8-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.8).
 
 #### Gear Lever (recommended)
 
@@ -62,14 +62,14 @@ Alternatively, place the AppImage in a permanent location if you plan to enable
 **Start at login**, then:
 
 ```sh
-chmod +x Glide-0.1.7-x86_64.AppImage
-./Glide-0.1.7-x86_64.AppImage
+chmod +x Glide-0.1.8-x86_64.AppImage
+./Glide-0.1.8-x86_64.AppImage
 ```
 
 If FUSE is unavailable:
 
 ```sh
-./Glide-0.1.7-x86_64.AppImage --appimage-extract-and-run
+./Glide-0.1.8-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The release includes `SHA256SUMS` to verify downloaded artifacts. It also includes
@@ -105,6 +105,18 @@ device can control the touchpad at a time. **Forget device** revokes its pairing
 | Two fingers | Scroll; pinch where supported by the focused app |
 | Three fingers | GNOME workspace/overview gestures |
 | Top-right menu | Fullscreen, preferences, disconnect, reconnect |
+
+**Four-finger media controls (optional):** Enable this per-device toggle in
+web Preferences or the desktop device settings. Four-finger tap sends play/pause;
+swipe up/down changes volume progressively, and left/right sends previous/next
+once per swipe. Glide sends standard Linux media keys, so the desktop's media-key
+configuration and active player determine the response.
+
+Place all four fingers before moving. With the toggle enabled, Glide reserves up
+to 90 ms at the start of a touch sequence to recognize the fingers. Movement starts
+native input sooner; an already-started desktop gesture is never switched to media
+mid-swipe. Lift all fingers to start another gesture. The toggle defaults to off,
+which keeps the original direct native input path.
 
 **Tap feedback:** Glide can give a brief vibration for short one-, two-, and
 three-finger taps. Toggle **Tap feedback** in the web Preferences or the desktop
@@ -165,7 +177,7 @@ also works without a tray host; launching it again reopens its window.
 - **New controls or movement fixes do not appear:** refresh the phone page after
   updating the desktop app.
 
-The packaged 0.1.7 AppImage passed startup, pairing, settings persistence, and
+The packaged 0.1.8 AppImage passed startup, pairing, settings persistence, and
 GTK-window checks in clean **Ubuntu 22.04, Ubuntu 24.04, Debian 12, and Fedora 44**
 containers. These checks use a virtual display; they do not establish full gesture
 support on each distribution's desktop. Native helper gesture/speed tests are

@@ -1,6 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {TapFeedback,tapPulse}=require('../web/taps.js');
+const {FourFingerMedia}=require('../web/media.js');
 const event=(id,time,x=100,y=100)=>({pointerId:id,pointerType:'touch',timeStamp:time,clientX:x,clientY:y});
 
 test('one, two and three finger taps give exactly one feedback pulse',()=>{
@@ -49,7 +50,7 @@ test('web input pulses only when enabled and connected; cancellation stays silen
         classList:{toggle(){}},setAttribute(){},replaceChildren(){},append(){},
         setPointerCapture(){},getBoundingClientRect:()=>({left:0,top:0,width:390,height:844}),
         showModal(){},close(){}});
-    const context=vm.createContext({Map,Set,JSON,Math,Number,Boolean,String,TapFeedback,tapPulse,
+    const context=vm.createContext({Map,Set,JSON,Math,Number,Boolean,String,TapFeedback,tapPulse,FourFingerMedia,
         navigator:{vibrate:n=>{pulses.push(n);return true;}},
         document:{querySelector:s=>{if(!elements.has(s))elements.set(s,element());return elements.get(s);},
             documentElement:element(),addEventListener(){},createElement:element,hidden:false},
@@ -87,4 +88,18 @@ test('web input pulses only when enabled and connected; cancellation stays silen
     assert.match(elements.get('#haptics-result').textContent,/rejected/);
     delete context.navigator.vibrate;elements.get('#test-haptics').onclick();
     assert.match(elements.get('#haptics-result').textContent,/does not support/);
+    elements.get('#media-controls').onchange({target:{checked:true}});
+    assert.equal(frames.at(-1).settings.media_controls,true);
+    frames.length=0;
+    for(let i=0;i<4;i++)pad.onpointerdown(e(i,600+i*10,'pointerdown'));
+    for(let i=0;i<4;i++)pad.onpointerup(e(i,680+i*10,'pointerup'));
+    assert.equal(frames.length,1);
+    assert.equal(frames[0].media,'play_pause');
+    assert.deepEqual(frames[0].points,[]);
+    frames.length=0;
+    for(let i=0;i<4;i++)pad.onpointerdown(e(i,800+i*10,'pointerdown'));
+    pad.onpointercancel(e(0,850,'pointercancel'));
+    for(let i=1;i<4;i++)pad.onpointerup(e(i,860+i*10,'pointerup'));
+    assert.ok(frames.every(f=>f.media===null && !f.points.length));
+
 });

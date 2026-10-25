@@ -42,6 +42,49 @@ impl Surface {
         }
     }
 }
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MediaAction {
+    PlayPause,
+    Previous,
+    Next,
+    VolumeUp,
+    VolumeDown,
+}
+impl MediaAction {
+    fn key(self) -> K {
+        match self {
+            Self::PlayPause => K::KEY_PLAYPAUSE,
+            Self::Previous => K::KEY_PREVIOUSSONG,
+            Self::Next => K::KEY_NEXTSONG,
+            Self::VolumeUp => K::KEY_VOLUMEUP,
+            Self::VolumeDown => K::KEY_VOLUMEDOWN,
+        }
+    }
+}
+fn media_device() -> Result<VirtualDevice> {
+    let mut keys = AttributeSet::new();
+    for action in [
+        MediaAction::PlayPause,
+        MediaAction::Previous,
+        MediaAction::Next,
+        MediaAction::VolumeUp,
+        MediaAction::VolumeDown,
+    ] {
+        keys.insert(action.key());
+    }
+    Ok(VirtualDevice::builder()?
+        .name("Glide Media Controls")
+        .input_id(InputId::new(BusType::BUS_USB, 0x1209, 0x474d, 1))
+        .with_keys(&keys)?
+        .build()?)
+}
+fn emit_media(device: &mut VirtualDevice, action: MediaAction) -> Result<()> {
+    // Separate reports ensure both transitions are visible; never leave a key held.
+    device.emit(&[InputEvent::new(EventType::KEY.0, action.key().0, 1)])?;
+    device.emit(&[InputEvent::new(EventType::KEY.0, action.key().0, 0)])?;
+    Ok(())
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Frame {
     #[serde(default)]
@@ -50,6 +93,8 @@ pub struct Frame {
     pub button: u8,
     #[serde(default)]
     pub seq: u64,
+    #[serde(default)]
+    pub media: Option<MediaAction>,
     #[serde(default)]
     pub surface: Surface,
     #[serde(default = "normal_speed")]
@@ -66,6 +111,7 @@ impl Default for Frame {
             points: Vec::new(),
             button: 0,
             seq: 0,
+            media: None,
             surface: Surface::default(),
             cursor_speed: 1.0,
             scroll_speed: 1.0,
@@ -74,7 +120,8 @@ impl Default for Frame {
 }
 impl Frame {
     pub fn validate(&self) -> Result<()> {
-        if !self.surface.width.is_finite()
+        if (self.media.is_some() && (!self.points.is_empty() || self.button != 0))
+            || !self.surface.width.is_finite()
             || !self.surface.height.is_finite()
             || !(1.0..=16384.0).contains(&self.surface.width)
             || !(1.0..=16384.0).contains(&self.surface.height)
@@ -258,6 +305,8 @@ fn device() -> Result<VirtualDevice> {
 }
 pub fn helper() -> Result<()> {
     let mut device = device()?;
+    let mut media = media_device()?;
+    eprintln!("MEDIA {}", media.get_syspath()?.display());
     let mut encoder = Encoder::default();
     println!("READY {}", device.get_syspath()?.display());
     let (tx, rx) = mpsc::sync_channel(16);
@@ -280,7 +329,13 @@ pub fn helper() -> Result<()> {
     });
     loop {
         match rx.recv_timeout(Duration::from_millis(1500)) {
-            Ok(f) => device.emit(&encoder.encode(&f)?)?,
+            Ok(f) => {
+                if let Some(action) = f.media {
+                    emit_media(&mut media, action)?;
+                } else {
+                    device.emit(&encoder.encode(&f)?)?;
+                }
+            }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 device.emit(&encoder.encode(&Frame::default())?)?
             }
@@ -304,6 +359,30 @@ mod tests {
                 .collect(),
             ..Default::default()
         }
+    }
+    #[test]
+    fn media_protocol_is_bounded_and_separate_from_contacts() {
+        for (name, key) in [
+            ("play_pause", K::KEY_PLAYPAUSE),
+            ("previous", K::KEY_PREVIOUSSONG),
+            ("next", K::KEY_NEXTSONG),
+            ("volume_up", K::KEY_VOLUMEUP),
+            ("volume_down", K::KEY_VOLUMEDOWN),
+        ] {
+            let f: Frame = serde_json::from_value(serde_json::json!({"media":name})).unwrap();
+            assert!(f.validate().is_ok());
+            assert_eq!(f.media.unwrap().key(), key);
+            let mut mixed = frame();
+            mixed.media = f.media;
+            assert!(mixed.validate().is_err());
+        }
+        assert!(serde_json::from_str::<Frame>(r#"{"media":"shell"}"#).is_err());
+        assert!(
+            serde_json::from_str::<Frame>(r#"{"points":[]}"#)
+                .unwrap()
+                .media
+                .is_none()
+        );
     }
     #[test]
     fn motion_gains_preserve_gestures_and_release() {

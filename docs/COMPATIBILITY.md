@@ -1,4 +1,4 @@
-# AppImage compatibility — 0.1.7
+# AppImage compatibility — 0.1.8
 
 The release is built on Ubuntu 22.04 for x86_64. Every bundled ELF passed a symbol
 version audit: no numeric GLIBC requirement above **2.35**, and no private or
@@ -19,12 +19,15 @@ invalid input, timeout, reconnect, and rate limiting. Settings checks cover
 restart/new-port persistence, profile restoration, and credential rotation.
 The Ubuntu window screenshot was visually checked for text and icon rendering.
 
-The portable UI was also launched in preview mode on the host's GNOME Wayland
-session with an isolated configuration. Its native input helper passed tests for
-three-finger swipe/reversal, two-finger scrolling, pinch, watchdog release,
+For 0.1.8, native input tests cover three-finger swipe/reversal, two-finger
+scrolling, pinch, watchdog release, native one/two/three-finger taps, and all five
+media keys with matched press/release events. Tests exclusively grab newly created
+virtual devices, so they do not change playback, volume, or the desktop cursor.
+Browser checks verified fresh pairing, reload/reconnect and media-mode startup.
+
+The 0.1.7 baseline additionally passed host GNOME Wayland preview startup,
 full-surface motion/scroll at 1× and 2×, and equal-axis motion in portrait and
-landscape. Input tests exclusively grab a newly created virtual device, so they
-do not move the user's desktop cursor or read physical input devices.
+landscape. This release retains that input mapping and bundled UI stack.
 
 ## What this does and does not establish
 

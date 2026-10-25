@@ -22,6 +22,7 @@ pub struct DeviceSettings {
     pub scroll_speed: f64,
     pub show_points: bool,
     pub haptics: bool,
+    pub media_controls: bool,
     pub haptic_duration_ms: u16,
     pub theme: String,
 }
@@ -32,6 +33,7 @@ impl Default for DeviceSettings {
             scroll_speed: 1.0,
             show_points: false,
             haptics: true,
+            media_controls: false,
             haptic_duration_ms: 25,
             theme: "system".into(),
         }
@@ -161,6 +163,7 @@ mod tests {
         )
         .unwrap();
         assert!(settings.haptics);
+        assert!(!settings.media_controls);
         assert_eq!(settings.haptic_duration_ms, 25);
         assert_eq!(settings.cursor_speed, 1.5);
         let disabled = DeviceSettings {

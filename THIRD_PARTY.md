@@ -23,7 +23,7 @@ and mimalloc; consult the upstream Alpine build recipe for how these are linked.
 
 ## Corresponding sources
 
-Download `Glide-0.1.7-sources.tar.gz` beside the AppImage. It includes:
+Download `Glide-0.1.8-sources.tar.gz` beside the AppImage. It includes:
 
 - Glide's release source and build/packaging scripts;
 - all Rust crates from `Cargo.lock`, with a Cargo vendor configuration;
