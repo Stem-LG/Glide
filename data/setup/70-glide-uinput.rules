@@ -1,0 +1,2 @@
+# Optional one-time setup. Grants uinput write access to the dedicated glide group.
+KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="glide", MODE="0660", OPTIONS+="static_node=uinput"

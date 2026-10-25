@@ -1,0 +1,28 @@
+name: Check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - name: Install build dependencies
+        run: dnf install -y git gcc pkgconf-pkg-config gtk4-devel libadwaita-devel python3-aiohttp nodejs
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting and JavaScript
+        run: |
+          cargo fmt --check
+          node --check web/app.js
+      - name: Lint and test
+        run: |
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+          cargo build --locked
+          python3 tests/network.py target/debug/glide
+          python3 tests/settings.py target/debug/glide

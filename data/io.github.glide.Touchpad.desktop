@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Glide
+Comment=Turn your phone into a native Linux touchpad
+Exec=glide
+Icon=io.github.glide.Touchpad
+Terminal=false
+Categories=GNOME;GTK;Utility;
+Keywords=touchpad;remote;phone;gestures;
+StartupNotify=true

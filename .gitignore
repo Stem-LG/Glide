@@ -1,0 +1,7 @@
+/target/
+/dist/
+/build/
+/evidence/
+/vendor/
+*.log
+__pycache__/
