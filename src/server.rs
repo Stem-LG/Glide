@@ -34,6 +34,7 @@ pub struct Shared {
     pub enabled: bool,
     pub connected: Option<(String, String)>,
     pub status: String,
+    pub input_feedback: Option<serde_json::Value>,
     pub address: String,
     pub attempts: HashMap<IpAddr, (Instant, u8)>,
     pub helper: Option<mpsc::Sender<Frame>>,
@@ -48,6 +49,7 @@ impl Shared {
             enabled: true,
             connected: None,
             status: "Starting…".into(),
+            input_feedback: None,
             address: format!("http://{}:{port}", lan_ip()),
             attempts: HashMap::new(),
             helper: None,
@@ -188,6 +190,7 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
             None
         } else if let Some(d) = d {
             s.connected = Some((d.id.clone(), d.name.clone()));
+            s.input_feedback = None;
             Some(d)
         } else {
             None
@@ -214,6 +217,7 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
     let mut ticker = tokio::time::interval(Duration::from_millis(250));
     let mut last = Instant::now();
     let mut last_media: Option<Instant> = None;
+    let mut last_feedback = None;
     loop {
         tokio::select! {
         _=ticker.tick()=>{
@@ -223,6 +227,12 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
             else{s.config.devices.iter().find(|d|d.id==owner.id && d.hash==owner.hash).map(|d|d.settings.clone())}
           };
           let Some(settings)=settings else{break};
+          let feedback=state.lock().unwrap().input_feedback.clone();
+          if feedback!=last_feedback {
+            last_feedback=feedback.clone();
+            if let Some(reply)=feedback
+              && ws.send(Message::Text(reply.to_string().into())).await.is_err(){break;}
+          }
           if settings!=last_settings {
             last_settings=settings.clone();
             if ws.send(Message::Text(json!({"settings":settings}).to_string().into())).await.is_err(){break;}
@@ -257,9 +267,9 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
             if frame.media.is_some() { last_media=Some(Instant::now()); }
             s.helper.clone()
          };
-         let seq=frame.seq;let n=frame.points.len();let media=frame.media;
+         let seq=frame.seq;let n=frame.points.len();let media=frame.media;let keypad=frame.keypad;
          if tx.is_none_or(|tx|tx.try_send(frame).is_err()){break;}
-         if ws.send(Message::Text(json!({"ack":seq,"contacts":n,"media":media}).to_string().into())).await.is_err(){break;}
+         if ws.send(Message::Text(json!({"ack":seq,"contacts":n,"media":media,"keypad":keypad}).to_string().into())).await.is_err(){break;}
         }
         }
     }
@@ -307,6 +317,22 @@ async fn input_task(state: AppState, preview: bool) -> Result<()> {
     );
     eprintln!("{}", line.trim());
     state.lock().unwrap().helper = Some(tx);
+    let feedback_state = state.clone();
+    tokio::spawn(async move {
+        loop {
+            let mut line = String::new();
+            match stdout.read_line(&mut line).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => {
+                    if let Ok(value) = serde_json::from_str::<serde_json::Value>(&line)
+                        && value.get("num_lock_state").is_some()
+                    {
+                        feedback_state.lock().unwrap().input_feedback = Some(value);
+                    }
+                }
+            }
+        }
+    });
     let mut stdin = child.stdin.take().unwrap();
     while let Some(frame) = rx.recv().await {
         stdin
@@ -376,6 +402,30 @@ pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
                         ("cache-control", "no-store"),
                     ],
                     include_str!("../web/media.js"),
+                )
+            }),
+        )
+        .route(
+            "/tools.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/tools.js"),
+                )
+            }),
+        )
+        .route(
+            "/tools-ui.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/tools-ui.js"),
                 )
             }),
         )

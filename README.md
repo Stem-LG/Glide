@@ -1,7 +1,7 @@
 <p align="center"><img src="data/io.github.glide.Touchpad.svg" width="96" alt="Glide icon"></p>
 <h1 align="center">Glide</h1>
 <p align="center"><strong>Your phone. Your touchpad.</strong><br>Turn a touchscreen into a native Linux touchpad, with smooth GNOME gestures.</p>
-<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.8">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.9">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
 
 Glide pairs a native **Rust + GTK4/libadwaita** desktop app with a lightweight web
 controller. Open it on your phone or tablet, connect over your local network, and
@@ -9,7 +9,7 @@ use the whole screen to move, scroll, pinch, and navigate your desktop.
 
 No phone app to install. No cloud service. No account.
 
-> **Preview — v0.1.8.** The portable x86_64 AppImage targets **glibc 2.35+**
+> **Preview — v0.1.9.** The portable x86_64 AppImage targets **glibc 2.35+**
 > (Ubuntu 22.04 and newer compatible Linux systems). It bundles its GTK UI stack.
 > Native gestures have been tested on **GNOME 50 / Wayland**. Use it only on a
 > trusted local network; the current HTTP/WebSocket connection is not encrypted.
@@ -22,6 +22,8 @@ No phone app to install. No cloud service. No account.
   your finger movement, including continuous three-finger navigation.
 - **A full-screen touch surface:** unobtrusive branding, optional touch indicators,
   and a compact menu for fullscreen, preferences, disconnect, and reconnect.
+- **Number pad:** pinned shortcuts, native numeric input, and a landscape split
+  that leaves room for the touchpad beside the keys.
 - **Balanced movement:** the surface keeps its aspect ratio, with independent
   cursor and scroll speed controls from **0.25× to 2×**.
 - **Settings that stay with your device:** speeds, appearance, and touch indicators
@@ -34,7 +36,7 @@ No phone app to install. No cloud service. No account.
 
 ### 1. Download and launch
 
-Download `Glide-0.1.8-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.8).
+Download `Glide-0.1.9-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.9).
 
 #### Gear Lever (recommended)
 
@@ -62,14 +64,14 @@ Alternatively, place the AppImage in a permanent location if you plan to enable
 **Start at login**, then:
 
 ```sh
-chmod +x Glide-0.1.8-x86_64.AppImage
-./Glide-0.1.8-x86_64.AppImage
+chmod +x Glide-0.1.9-x86_64.AppImage
+./Glide-0.1.9-x86_64.AppImage
 ```
 
 If FUSE is unavailable:
 
 ```sh
-./Glide-0.1.8-x86_64.AppImage --appimage-extract-and-run
+./Glide-0.1.9-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The release includes `SHA256SUMS` to verify downloaded artifacts. It also includes
@@ -91,7 +93,7 @@ Glide does not change device permissions or firewall rules automatically.
 2. In Glide, choose **Show QR code**, then scan it with your camera. You can also
    type the displayed LAN address into your browser.
 3. Enter the six-digit pairing code. Pairing closes automatically after success.
-4. Use the top-right menu to enter fullscreen or open preferences.
+4. Tap the Glide logo at the top of the sidebar to enter fullscreen or open preferences.
 
 To add another device, enable **Allow a new device** in the desktop app. Only one
 device can control the touchpad at a time. **Forget device** revokes its pairing.
@@ -104,7 +106,19 @@ device can control the touchpad at a time. **Forget device** revokes its pairing
 | Tap | Click, when tap-to-click is enabled in desktop settings |
 | Two fingers | Scroll; pinch where supported by the focused app |
 | Three fingers | GNOME workspace/overview gestures |
-| Top-right menu | Fullscreen, preferences, disconnect, reconnect |
+| Glide logo menu | Fullscreen, preferences, disconnect, reconnect |
+
+**Number pad and shortcuts:** Use the number-pad icon on the left rail to switch
+between gestures and numeric input. In landscape the compact number pad stays
+on the left, with a live touchpad in the remaining space on the right. Keys go to
+the focused desktop app, like a physical keypad: digits, arithmetic, decimal,
+Enter, Backspace and Delete.
+Opening the number pad checks the desktop Num Lock LED state and enables it only
+when it is off. This check never toggles an already-enabled Num Lock off. If
+Linux cannot report a consistent state, Glide reports that instead of guessing.
+The decimal separator follows the desktop keyboard locale. Open **Tools & shortcuts** to pin/unpin it.
+Pins are saved on the desktop for each device and can also be changed in desktop
+device settings. More tools can use the same rail and picker in future releases.
 
 **Four-finger media controls (optional):** Enable this per-device toggle in
 web Preferences or the desktop device settings. Four-finger tap sends play/pause;
@@ -130,7 +144,7 @@ tap-to-click and tap-and-drag.
 
 Natural scrolling, tap-to-click, acceleration, and gesture availability also depend
 on your desktop settings. Fullscreen support depends on the phone browser. The web
-controller currently focuses on touch input; keyboard and media controls are not included.
+controller includes touch input, a number pad, and optional four-finger media controls.
 
 ### Per-device preferences
 
@@ -177,7 +191,7 @@ also works without a tray host; launching it again reopens its window.
 - **New controls or movement fixes do not appear:** refresh the phone page after
   updating the desktop app.
 
-The packaged 0.1.8 AppImage passed startup, pairing, settings persistence, and
+The packaged 0.1.9 AppImage passed startup, pairing, settings persistence, and
 GTK-window checks in clean **Ubuntu 22.04, Ubuntu 24.04, Debian 12, and Fedora 44**
 containers. These checks use a virtual display; they do not establish full gesture
 support on each distribution's desktop. Native helper gesture/speed tests are

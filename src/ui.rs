@@ -455,6 +455,12 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         .active(device.settings.media_controls)
         .build();
     group.add(&media_controls);
+    let pin_numpad = adw::SwitchRow::builder()
+        .title("Pin number pad")
+        .subtitle("Show the number pad in the phone’s shortcut rail")
+        .active(device.settings.pinned_tools.iter().any(|id| id == "numpad"))
+        .build();
+    group.add(&pin_numpad);
     let haptics = adw::SwitchRow::builder()
         .title("Tap feedback")
         .subtitle("Brief vibration on supported phones and browsers")
@@ -506,6 +512,7 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     let d = dots.clone();
     let h = haptics.clone();
     let media = media_controls.clone();
+    let pin = pin_numpad.clone();
     let duration = pulse.clone();
     let t = theme.clone();
     let msg = message.clone();
@@ -519,6 +526,11 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
             show_points: d.is_active(),
             haptics: h.is_active(),
             media_controls: media.is_active(),
+            pinned_tools: if pin.is_active() {
+                vec!["numpad".into()]
+            } else {
+                vec![]
+            },
             haptic_duration_ms: duration.value_as_int() as u16,
             theme: ["system", "dark", "light"][t.selected() as usize].into(),
         };
@@ -537,6 +549,8 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     haptics.connect_active_notify(move |_| cb());
     let cb = persist.clone();
     media_controls.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    pin_numpad.connect_active_notify(move |_| cb());
     let cb = persist.clone();
     pulse.connect_value_changed(move |_| cb());
     theme.connect_selected_notify(move |_| persist());
@@ -568,6 +582,7 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         dots.set_active(settings.show_points);
         haptics.set_active(settings.haptics);
         media_controls.set_active(settings.media_controls);
+        pin_numpad.set_active(settings.pinned_tools.iter().any(|id| id == "numpad"));
         if pulse.value_as_int() != i32::from(settings.haptic_duration_ms) {
             pulse.set_value(f64::from(settings.haptic_duration_ms));
         }

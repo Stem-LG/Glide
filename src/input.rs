@@ -62,6 +62,88 @@ impl MediaAction {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum KeypadKey {
+    #[serde(rename = "0")]
+    Digit0,
+    #[serde(rename = "1")]
+    Digit1,
+    #[serde(rename = "2")]
+    Digit2,
+    #[serde(rename = "3")]
+    Digit3,
+    #[serde(rename = "4")]
+    Digit4,
+    #[serde(rename = "5")]
+    Digit5,
+    #[serde(rename = "6")]
+    Digit6,
+    #[serde(rename = "7")]
+    Digit7,
+    #[serde(rename = "8")]
+    Digit8,
+    #[serde(rename = "9")]
+    Digit9,
+    Decimal,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Enter,
+    Backspace,
+    Delete,
+    Tab,
+    NumLock,
+}
+const KEYPAD_KEYS: [KeypadKey; 20] = [
+    KeypadKey::Digit0,
+    KeypadKey::Digit1,
+    KeypadKey::Digit2,
+    KeypadKey::Digit3,
+    KeypadKey::Digit4,
+    KeypadKey::Digit5,
+    KeypadKey::Digit6,
+    KeypadKey::Digit7,
+    KeypadKey::Digit8,
+    KeypadKey::Digit9,
+    KeypadKey::Decimal,
+    KeypadKey::Add,
+    KeypadKey::Subtract,
+    KeypadKey::Multiply,
+    KeypadKey::Divide,
+    KeypadKey::Enter,
+    KeypadKey::Backspace,
+    KeypadKey::Delete,
+    KeypadKey::Tab,
+    KeypadKey::NumLock,
+];
+impl KeypadKey {
+    fn key(self) -> K {
+        match self {
+            Self::Digit0 => K::KEY_KP0,
+            Self::Digit1 => K::KEY_KP1,
+            Self::Digit2 => K::KEY_KP2,
+            Self::Digit3 => K::KEY_KP3,
+            Self::Digit4 => K::KEY_KP4,
+            Self::Digit5 => K::KEY_KP5,
+            Self::Digit6 => K::KEY_KP6,
+            Self::Digit7 => K::KEY_KP7,
+            Self::Digit8 => K::KEY_KP8,
+            Self::Digit9 => K::KEY_KP9,
+            Self::Decimal => K::KEY_KPDOT,
+            Self::Add => K::KEY_KPPLUS,
+            Self::Subtract => K::KEY_KPMINUS,
+            Self::Multiply => K::KEY_KPASTERISK,
+            Self::Divide => K::KEY_KPSLASH,
+            Self::Enter => K::KEY_KPENTER,
+            Self::Backspace => K::KEY_BACKSPACE,
+            Self::Delete => K::KEY_DELETE,
+            Self::Tab => K::KEY_TAB,
+            Self::NumLock => K::KEY_NUMLOCK,
+        }
+    }
+}
 fn media_device() -> Result<VirtualDevice> {
     let mut keys = AttributeSet::new();
     for action in [
@@ -73,8 +155,11 @@ fn media_device() -> Result<VirtualDevice> {
     ] {
         keys.insert(action.key());
     }
+    for key in KEYPAD_KEYS {
+        keys.insert(key.key());
+    }
     Ok(VirtualDevice::builder()?
-        .name("Glide Media Controls")
+        .name("Glide Controls")
         .input_id(InputId::new(BusType::BUS_USB, 0x1209, 0x474d, 1))
         .with_keys(&keys)?
         .build()?)
@@ -96,6 +181,8 @@ pub struct Frame {
     #[serde(default)]
     pub media: Option<MediaAction>,
     #[serde(default)]
+    pub keypad: Option<KeypadKey>,
+    #[serde(default)]
     pub surface: Surface,
     #[serde(default = "normal_speed")]
     pub cursor_speed: f64,
@@ -112,6 +199,7 @@ impl Default for Frame {
             button: 0,
             seq: 0,
             media: None,
+            keypad: None,
             surface: Surface::default(),
             cursor_speed: 1.0,
             scroll_speed: 1.0,
@@ -120,7 +208,9 @@ impl Default for Frame {
 }
 impl Frame {
     pub fn validate(&self) -> Result<()> {
-        if (self.media.is_some() && (!self.points.is_empty() || self.button != 0))
+        if ((self.media.is_some() || self.keypad.is_some())
+            && (!self.points.is_empty() || self.button != 0))
+            || (self.media.is_some() && self.keypad.is_some())
             || !self.surface.width.is_finite()
             || !self.surface.height.is_finite()
             || !(1.0..=16384.0).contains(&self.surface.width)
@@ -303,6 +393,47 @@ fn device() -> Result<VirtualDevice> {
     }
     Ok(b.build()?)
 }
+fn num_lock_state(directory: &std::path::Path) -> Option<bool> {
+    // Read status only, never physical keyboard input. Desktops normally keep
+    // Num Lock LEDs synchronized. Conflicting/missing state is not a safe toggle.
+    let mut state = None;
+    for entry in std::fs::read_dir(directory).ok()? {
+        let entry = entry.ok()?;
+        if !entry.file_name().to_string_lossy().ends_with("::numlock") {
+            continue;
+        }
+        let value = match std::fs::read_to_string(entry.path().join("brightness"))
+            .ok()?
+            .trim()
+        {
+            "0" => false,
+            "1" => true,
+            _ => return None,
+        };
+        if state.is_some_and(|old| old != value) {
+            return None;
+        }
+        state = Some(value);
+    }
+    state
+}
+fn ensure_num_lock(
+    read: impl Fn() -> Option<bool>,
+    mut press: impl FnMut() -> Result<()>,
+) -> Result<Option<bool>> {
+    match read() {
+        Some(false) => {}
+        state => return Ok(state),
+    }
+    press()?;
+    for _ in 0..15 {
+        std::thread::sleep(Duration::from_millis(10));
+        if read() == Some(true) {
+            return Ok(Some(true));
+        }
+    }
+    Ok(read())
+}
 pub fn helper() -> Result<()> {
     let mut device = device()?;
     let mut media = media_device()?;
@@ -332,6 +463,33 @@ pub fn helper() -> Result<()> {
             Ok(f) => {
                 if let Some(action) = f.media {
                     emit_media(&mut media, action)?;
+                } else if let Some(key) = f.keypad {
+                    // Key actions are independent of a live touchpad stroke.
+                    if key == KeypadKey::NumLock {
+                        let state = ensure_num_lock(
+                            || num_lock_state(std::path::Path::new("/sys/class/leds")),
+                            || {
+                                media.emit(&[InputEvent::new(
+                                    EventType::KEY.0,
+                                    K::KEY_NUMLOCK.0,
+                                    1,
+                                )])?;
+                                media.emit(&[InputEvent::new(
+                                    EventType::KEY.0,
+                                    K::KEY_NUMLOCK.0,
+                                    0,
+                                )])?;
+                                Ok(())
+                            },
+                        )?;
+                        println!(
+                            "{}",
+                            serde_json::json!({"num_lock_state":match state {Some(true)=>"on",Some(false)=>"off",None=>"unknown"},"seq":f.seq})
+                        );
+                    } else {
+                        media.emit(&[InputEvent::new(EventType::KEY.0, key.key().0, 1)])?;
+                        media.emit(&[InputEvent::new(EventType::KEY.0, key.key().0, 0)])?;
+                    }
                 } else {
                     device.emit(&encoder.encode(&f)?)?;
                 }
@@ -359,6 +517,115 @@ mod tests {
                 .collect(),
             ..Default::default()
         }
+    }
+    #[test]
+    fn enabling_num_lock_is_conditional_and_never_guesses() {
+        use std::cell::Cell;
+        let state = Cell::new(Some(true));
+        let presses = Cell::new(0);
+        let result = ensure_num_lock(
+            || state.get(),
+            || {
+                presses.set(presses.get() + 1);
+                state.set(Some(true));
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(result, Some(true));
+        assert_eq!(presses.get(), 0);
+        state.set(Some(false));
+        assert_eq!(
+            ensure_num_lock(
+                || state.get(),
+                || {
+                    presses.set(presses.get() + 1);
+                    state.set(Some(true));
+                    Ok(())
+                }
+            )
+            .unwrap(),
+            Some(true)
+        );
+        assert_eq!(presses.get(), 1);
+        assert_eq!(
+            ensure_num_lock(
+                || state.get(),
+                || {
+                    presses.set(presses.get() + 1);
+                    Ok(())
+                }
+            )
+            .unwrap(),
+            Some(true)
+        );
+        assert_eq!(presses.get(), 1);
+        state.set(None);
+        assert_eq!(
+            ensure_num_lock(
+                || state.get(),
+                || {
+                    presses.set(presses.get() + 1);
+                    Ok(())
+                }
+            )
+            .unwrap(),
+            None
+        );
+        assert_eq!(presses.get(), 1);
+        let reads = Cell::new(0);
+        let transient = ensure_num_lock(
+            || {
+                let n = reads.get();
+                reads.set(n + 1);
+                match n {
+                    0 => Some(false),
+                    1 => None,
+                    _ => Some(true),
+                }
+            },
+            || Ok(()),
+        )
+        .unwrap();
+        assert_eq!(transient, Some(true));
+    }
+    #[test]
+    fn num_lock_leds_require_consistent_reported_state() {
+        let root = std::env::temp_dir().join(format!("glide-led-test-{}", crate::config::token()));
+        std::fs::create_dir(&root).unwrap();
+        assert_eq!(num_lock_state(&root), None);
+        for id in ["input1::numlock", "input2::numlock"] {
+            std::fs::create_dir(root.join(id)).unwrap();
+            std::fs::write(root.join(id).join("brightness"), "1\n").unwrap();
+        }
+        assert_eq!(num_lock_state(&root), Some(true));
+        std::fs::write(root.join("input1::numlock/brightness"), "0\n").unwrap();
+        assert_eq!(num_lock_state(&root), None);
+        std::fs::write(root.join("input2::numlock/brightness"), "0\n").unwrap();
+        assert_eq!(num_lock_state(&root), Some(false));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn keypad_protocol_is_allowlisted_and_separate_from_touch_and_media() {
+        for key in KEYPAD_KEYS {
+            let name = serde_json::to_value(key).unwrap();
+            let f: Frame = serde_json::from_value(serde_json::json!({"keypad":name})).unwrap();
+            assert!(f.validate().is_ok());
+            assert_eq!(f.keypad.unwrap().key(), key.key());
+            let mut mixed = frame();
+            mixed.keypad = f.keypad;
+            assert!(mixed.validate().is_err());
+            mixed.points.clear();
+            mixed.media = Some(MediaAction::PlayPause);
+            assert!(mixed.validate().is_err());
+        }
+        assert!(serde_json::from_str::<Frame>(r#"{"keypad":"shell"}"#).is_err());
+        assert!(
+            serde_json::from_str::<Frame>(r#"{"points":[]}"#)
+                .unwrap()
+                .keypad
+                .is_none()
+        );
     }
     #[test]
     fn media_protocol_is_bounded_and_separate_from_contacts() {

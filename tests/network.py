@@ -21,6 +21,10 @@ async def main():
                             assert (await r.json())['app']=='Glide'; break
                     except OSError: await asyncio.sleep(.1)
                 else: raise RuntimeError('Server failed to start')
+                # Verify actual asset bodies, not just the route status/MIME.
+                for path, content in [('/style.css', ':root'), ('/tools.js', 'GlideTools'), ('/tools-ui.js', 'numpad')]:
+                    async with client.get(url+path) as r:
+                        body=await r.text();assert r.status==200 and content in body and '<!doctype' not in body,path
                 headers={'Origin':url}
                 async with client.post(url+'/api/pair',json={'code':code,'name':'Integration device'}) as r: assert r.status==403
                 async with client.post(url+'/api/pair',headers=headers,json={'code':'bad','name':'x'}) as r: assert r.status==401

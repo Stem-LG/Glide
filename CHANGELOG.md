@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.9 — 2026-11-02
+
+- Desktop number-pad input with native keypad, editing and arithmetic keys.
+- Scrollable shortcut rail and tool picker with per-device pins saved on the desktop.
+- Compact sidebar logo/menu with a connection indicator.
+- Landscape number pad on the left with a live touchpad on the right.
+- Check Num Lock when opening the number pad and enable it only when known to be off.
+- Preserve ongoing touchpad contacts while typing on the number pad.
+
 ## 0.1.8 — 2026-10-25
 
 - Optional four-finger media controls: tap for play/pause, swipe up/down for volume,

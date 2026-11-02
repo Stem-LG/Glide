@@ -12,7 +12,7 @@ async def main():
   for path in [ready.split(' ',1)[1],media.split(' ',1)[1]]:
    for _ in range(50):
     nodes=glob.glob(path+'/event*')
-    if nodes and os.path.exists('/dev/input/'+Path(nodes[0]).name):break
+    if nodes and os.access('/dev/input/'+Path(nodes[0]).name,os.R_OK):break
     await asyncio.sleep(.1)
    capture=await asyncio.create_subprocess_exec('stdbuf','-oL','libinput','debug-events','--device','/dev/input/'+Path(nodes[0]).name,'--grab','--enable-tap','--set-tap-map=lrm','--show-keycodes',stdout=-1,stderr=-2)
    captures.append(capture)

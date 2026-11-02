@@ -25,6 +25,7 @@ pub struct DeviceSettings {
     pub media_controls: bool,
     pub haptic_duration_ms: u16,
     pub theme: String,
+    pub pinned_tools: Vec<String>,
 }
 impl Default for DeviceSettings {
     fn default() -> Self {
@@ -36,6 +37,7 @@ impl Default for DeviceSettings {
             media_controls: false,
             haptic_duration_ms: 25,
             theme: "system".into(),
+            pinned_tools: vec!["numpad".into()],
         }
     }
 }
@@ -47,7 +49,9 @@ impl DeviceSettings {
                 && self.scroll_speed.is_finite()
                 && (0.25..=2.0).contains(&self.scroll_speed)
                 && (5..=100).contains(&self.haptic_duration_ms)
-                && ["system", "dark", "light"].contains(&self.theme.as_str()),
+                && ["system", "dark", "light"].contains(&self.theme.as_str())
+                && self.pinned_tools.len() <= 1
+                && self.pinned_tools.iter().all(|id| id == "numpad"),
             "Invalid device settings"
         );
         Ok(())
@@ -165,6 +169,7 @@ mod tests {
         assert!(settings.haptics);
         assert!(!settings.media_controls);
         assert_eq!(settings.haptic_duration_ms, 25);
+        assert_eq!(settings.pinned_tools, vec!["numpad"]);
         assert_eq!(settings.cursor_speed, 1.5);
         let disabled = DeviceSettings {
             haptics: false,
@@ -176,6 +181,24 @@ mod tests {
     }
     #[test]
     fn reject_invalid_settings() {
+        for pins in [vec!["shell".into()], vec!["numpad".into(), "numpad".into()]] {
+            assert!(
+                DeviceSettings {
+                    pinned_tools: pins,
+                    ..Default::default()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        assert!(
+            DeviceSettings {
+                pinned_tools: vec![],
+                ..Default::default()
+            }
+            .validate()
+            .is_ok()
+        );
         for duration in [0, 4, 101, u16::MAX] {
             assert!(
                 DeviceSettings {
