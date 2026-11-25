@@ -1,7 +1,9 @@
+mod audio;
 mod config;
 mod input;
 mod qr;
 mod server;
+mod tls;
 mod tray;
 mod ui;
 use std::sync::{Arc, Mutex};
@@ -22,6 +24,9 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or(8766);
     let preview = args.iter().any(|a| a == "--preview");
     let state = Arc::new(Mutex::new(server::Shared::new(config::load()?, port)));
+    if args.iter().any(|a| a == "--https") {
+        state.lock().unwrap().set_https(true);
+    }
     if args.iter().any(|a| a == "--headless") {
         {
             let s = state.lock().unwrap();

@@ -5,9 +5,17 @@ multitouch input into the desktop, so use it only with devices and networks you 
 
 ## Current boundaries
 
-- HTTP/WebSocket traffic is **not encrypted**. Pairing credentials and input can
-  be observed by a party able to inspect network traffic. Do not port-forward or
-  publicly expose Glide; a pairing PIN is not a substitute for TLS.
+- By default HTTP/WebSocket traffic is **not encrypted**. Pairing credentials, input
+  and audio can be observed by a party able to inspect network traffic. Do not
+  port-forward or publicly expose Glide; a pairing PIN is not a substitute for TLS.
+- The optional **Secure connection (HTTPS)** encrypts traffic with a self-signed
+  certificate generated on the desktop (`tls-cert.pem`, `tls-key.pem` in Glide's
+  config directory). Browsers cannot verify it, so the first-visit warning must be
+  accepted by hand; it protects against passive observers, not an active attacker
+  on the network at that first visit.
+- Desktop audio and the phone microphone are off by default, enabled per device,
+  and only served to the device that currently controls input. The microphone
+  stops when the phone page is hidden or disconnected.
 - The server listens on all IPv4 interfaces on the selected port (default 8766).
   Configure network/firewall access yourself. Glide does not change firewall rules.
 - Pairing uses a six-digit PIN, rate limiting, and randomly generated device tokens.

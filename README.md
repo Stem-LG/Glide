@@ -1,7 +1,7 @@
 <p align="center"><img src="data/io.github.glide.Touchpad.svg" width="96" alt="Glide icon"></p>
 <h1 align="center">Glide</h1>
 <p align="center"><strong>Your phone. Your touchpad.</strong><br>Turn a touchscreen into a native Linux touchpad, with smooth GNOME gestures.</p>
-<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.9">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/Stem-LG/Glide/releases/tag/v0.1.10">Download the AppImage</a> · <a href="#getting-started">Getting started</a> · <a href="#build-from-source">Build from source</a> · <a href="https://github.com/Stem-LG/Glide/issues">Report an issue</a></p>
 
 Glide pairs a native **Rust + GTK4/libadwaita** desktop app with a lightweight web
 controller. Open it on your phone or tablet, connect over your local network, and
@@ -9,10 +9,11 @@ use the whole screen to move, scroll, pinch, and navigate your desktop.
 
 No phone app to install. No cloud service. No account.
 
-> **Preview — v0.1.9.** The portable x86_64 AppImage targets **glibc 2.35+**
+> **Preview — v0.1.10.** The portable x86_64 AppImage targets **glibc 2.35+**
 > (Ubuntu 22.04 and newer compatible Linux systems). It bundles its GTK UI stack.
 > Native gestures have been tested on **GNOME 50 / Wayland**. Use it only on a
-> trusted local network; the current HTTP/WebSocket connection is not encrypted.
+> trusted local network; the connection is unencrypted HTTP/WebSocket unless you turn
+> on **Secure connection (HTTPS)**, which uses a locally generated certificate.
 
 <p align="center"><img src="docs/images/touchpad.png" width="260" alt="Glide's full-screen touch surface"><img src="docs/images/preferences.png" width="260" alt="Cursor and scroll speeds saved on the desktop"></p>
 
@@ -24,6 +25,13 @@ No phone app to install. No cloud service. No account.
   and a compact menu for fullscreen, preferences, disconnect, and reconnect.
 - **Number pad:** pinned shortcuts, native numeric input, and a landscape split
   that leaves room for the touchpad beside the keys.
+- **Desktop audio:** optionally hear your computer's sound on the phone while it is
+  connected. It mirrors the default output, so mute the desktop speakers if you
+  only want it on the phone. Needs `pw-record` (PipeWire) or `parec` (PulseAudio).
+- **Phone microphone:** optionally use the phone as a desktop microphone. Turn on
+  **Secure connection (HTTPS)** in Glide first; browsers only share the microphone
+  with secure pages. Your phone shows a certificate warning once because the
+  certificate is generated locally. Needs PipeWire (`pw-cat`).
 - **Balanced movement:** the surface keeps its aspect ratio, with independent
   cursor and scroll speed controls from **0.25× to 2×**.
 - **Settings that stay with your device:** speeds, appearance, and touch indicators
@@ -36,7 +44,7 @@ No phone app to install. No cloud service. No account.
 
 ### 1. Download and launch
 
-Download `Glide-0.1.9-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.9).
+Download `Glide-0.1.10-x86_64.AppImage` from the [release page](https://github.com/Stem-LG/Glide/releases/tag/v0.1.10).
 
 #### Gear Lever (recommended)
 
@@ -64,14 +72,14 @@ Alternatively, place the AppImage in a permanent location if you plan to enable
 **Start at login**, then:
 
 ```sh
-chmod +x Glide-0.1.9-x86_64.AppImage
-./Glide-0.1.9-x86_64.AppImage
+chmod +x Glide-0.1.10-x86_64.AppImage
+./Glide-0.1.10-x86_64.AppImage
 ```
 
 If FUSE is unavailable:
 
 ```sh
-./Glide-0.1.9-x86_64.AppImage --appimage-extract-and-run
+./Glide-0.1.10-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The release includes `SHA256SUMS` to verify downloaded artifacts. It also includes
@@ -176,7 +184,7 @@ also works without a tray host; launching it again reopens its window.
 | Input | `/dev/uinput`, interpreted by libinput |
 | Other desktops | Gesture behavior depends on the compositor/libinput; needs testing |
 | Alpine/musl, glibc older than 2.35, ARM | Not supported by this AppImage |
-| Transport | HTTP/WebSocket on a trusted LAN, default port `8766` |
+| Transport | HTTP/WebSocket on a trusted LAN, default port `8766`; optional HTTPS on the same port |
 
 - **Cannot connect:** check the displayed IP, network isolation/guest Wi-Fi, and your
   firewall. Glide does not open ports for you. Restart it after changing networks.
@@ -191,15 +199,15 @@ also works without a tray host; launching it again reopens its window.
 - **New controls or movement fixes do not appear:** refresh the phone page after
   updating the desktop app.
 
-The packaged 0.1.9 AppImage passed startup, pairing, settings persistence, and
+The packaged 0.1.10 AppImage passed startup, pairing, settings persistence, and
 GTK-window checks in clean **Ubuntu 22.04, Ubuntu 24.04, Debian 12, and Fedora 44**
 containers. These checks use a virtual display; they do not establish full gesture
 support on each distribution's desktop. Native helper gesture/speed tests are
 run separately on Fedora, using an exclusively grabbed virtual test device.
 See the [compatibility report](docs/COMPATIBILITY.md) for the exact scope.
 
-Do not expose Glide's port to the Internet. Pairing tokens and input are currently
-unencrypted in transit. See [SECURITY.md](SECURITY.md) for the security model.
+Do not expose Glide's port to the Internet. Pairing tokens, input, and audio are
+unencrypted in transit unless **Secure connection (HTTPS)** is on. See [SECURITY.md](SECURITY.md) for the security model.
 
 ## Build from source
 

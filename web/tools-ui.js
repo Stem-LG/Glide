@@ -4,10 +4,11 @@
     const icons={
         touchpad:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 15h18m-9 0v5"/></svg>',
         numpad:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="3"/><path d="M8 7h8m-8 5h1m3 0h1m3 0h.1M8 16h1m3 0h1m3 0h.1"/></svg>',
+        audio:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l5 4V6l-5 4zm12-1a4 4 0 0 1 0 6m2.5-9a8 8 0 0 1 0 12"/></svg>',
     };
     function select(id,toggle=false){
         if(!(toggle?tools.toggle(id):tools.select(id)))return;
-        clear();$('#tool-workspace').dataset.tool=tools.active;$('#numpad-panel').hidden=tools.active!=='numpad';
+        clear();$('#tool-workspace').dataset.tool=tools.active;$('#numpad-panel').hidden=tools.active!=='numpad';$('#audio-panel').hidden=tools.active!=='audio';
         renderRail();
         if(tools.active==='numpad')sendKey('num_lock');
     }

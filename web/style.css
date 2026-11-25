@@ -52,3 +52,12 @@ main{padding:0}#pad{border:0;border-radius:0;box-shadow:none;min-height:0}
 .tool-library-row{display:flex;align-items:center;gap:8px;margin:12px 0;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--card)}.tool-library-open{display:flex;align-items:center;gap:12px;background:transparent;flex:1;min-width:0;padding:10px;text-align:left}.tool-library-open>span{display:flex;flex-direction:column;gap:4px}.tool-library-open small{font-weight:400;font-size:12px;color:var(--muted);line-height:1.4}.tool-pin{padding:10px 12px;font-size:12px}.tool-pin[aria-pressed=true]{color:var(--accent);background:#3584e41f}
 @media(max-width:360px){#controller{grid-template-columns:50px minmax(0,1fr)}#tool-rail{padding-left:3px;padding-right:3px}#numpad-panel{padding-left:8px;padding-right:8px}.numpad-key{border-radius:12px}}
 @media(orientation:landscape){#tool-workspace[data-tool=numpad] #pad{display:grid}#tool-workspace[data-tool=numpad] #numpad-panel{flex:0 0 min(100dvh,60%);border-right:1px solid var(--line)}#numpad-keys{min-height:0;grid-template-rows:repeat(5,minmax(38px,1fr))}.numpad-key{min-height:38px;font-size:24px}}
+
+/* Audio tool: same split layout as the number pad, plus live chips on the pad. */
+#audio-panel{order:-1;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;padding:calc(12px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));overflow:auto;background:var(--pad)}
+#audio-panel .row{margin:6px 0 0}#audio-panel .muted{margin:8px 6px 0}#audio-panel .audio-stats{color:var(--accent);font-variant-numeric:tabular-nums;min-height:20px;margin-bottom:14px}
+#tool-workspace[data-tool=audio] #pad{display:none}
+#pad-status{position:absolute;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
+#pad-status span{display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface);color:var(--muted);font-variant-numeric:tabular-nums}
+#pad-status span::before{content:'';width:7px;height:7px;border-radius:50%;background:#26a269}
+@media(orientation:landscape){#tool-workspace[data-tool=audio] #pad{display:grid}#tool-workspace[data-tool=audio] #audio-panel{flex:0 0 min(100dvh,50%);border-right:1px solid var(--line)}}

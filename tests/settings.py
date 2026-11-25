@@ -32,11 +32,11 @@ async def main():
       return r.status,await r.json() if r.status==200 else await r.text()
     status,paired=await pair(url,code);assert status==200 and 'token' in paired
     ws=await connect(client,url,paired['token']);ready=await receive(ws,'ready');assert ready['settings']['cursor_speed']==1
-    assert ready['settings']['media_controls'] is False
+    assert ready['settings']['media_controls'] is False and ready['settings']['audio'] is False
     assert ready['settings']['pinned_tools']==['numpad']
     await ws.send_json({'media':'play_pause','seq':101})
     assert (await receive(ws,'ack'))['media'] is None
-    settings={'cursor_speed':1.7,'scroll_speed':.6,'show_points':True,'haptics':False,'media_controls':True,'haptic_duration_ms':42,'theme':'dark','pinned_tools':[]}
+    settings={'cursor_speed':1.7,'scroll_speed':.6,'show_points':True,'haptics':False,'media_controls':True,'audio':True,'microphone':True,'haptic_duration_ms':42,'theme':'dark','pinned_tools':['audio']}
     await ws.send_json({'settings':settings});saved=await receive(ws,'settings_saved');assert saved['settings']==settings
     persisted=json.loads(Path(directory,'config.json').read_text());assert persisted['devices'][0]['settings']==settings
     await ws.send_json({'media':'play_pause','seq':102})

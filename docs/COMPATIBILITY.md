@@ -1,9 +1,9 @@
-# AppImage compatibility — 0.1.9
+# AppImage compatibility — 0.1.10
 
 The release is built on Ubuntu 22.04 for x86_64. Every bundled ELF passed a symbol
 version audit: no numeric GLIBC requirement above **2.35**, and no private or
 newer named glibc ABI requirements. The same artifact was exercised on the
-following userspaces on 2026-11-02:
+following userspaces on 2026-11-25:
 
 | Environment | Version/startup | Pairing and network rules | Saved settings | GTK window under Xvfb |
 | --- | --- | --- | --- | --- |
@@ -15,11 +15,12 @@ following userspaces on 2026-11-02:
 These are clean runtime containers, without the build environment's GTK stack.
 The test extracts the actual AppImage and runs its AppRun launcher. Network
 checks cover origin validation, pairing, token hashing, one active controller,
-invalid input, timeout, reconnect, and rate limiting. Settings checks cover
+invalid input, timeout, reconnect, rate limiting, the desktop-audio and
+microphone sockets (with a synthetic source), and HTTPS on the same port. Settings checks cover
 restart/new-port persistence, profile restoration, and credential rotation.
 The earlier portable baseline was also visually checked for text and icon rendering.
 
-For 0.1.9, native input tests cover three-finger swipe/reversal, two-finger
+For 0.1.10, native input tests cover three-finger swipe/reversal, two-finger
 scrolling, pinch, watchdog release, native one/two/three-finger taps, and all five
 media keys with matched press/release events. The number pad is checked for
 matched native keypad presses/releases, conditional Num Lock enable, and
@@ -27,6 +28,11 @@ concurrent typing without lifting a live touchpad contact. Tests exclusively gra
 virtual devices, so they do not change playback, volume, or the desktop cursor.
 During number-pad development, browser checks verified fresh pairing,
 reload/reconnect, pinned tools, and portrait/landscape layout.
+
+Desktop audio capture and the virtual microphone were exercised end to end on a
+Fedora host with PipeWire 1.6, and both were used from one phone browser. Other
+PipeWire versions, the PulseAudio (`parec`) capture path, and iOS Safari with the
+self-signed certificate are not yet verified.
 
 The 0.1.7 baseline additionally passed host GNOME Wayland preview startup,
 full-surface motion/scroll at 1× and 2×, and equal-axis motion in portrait and
@@ -45,7 +51,10 @@ landscape. This release retains that input mapping and bundled UI stack.
   glibc older than 2.35 need different builds.
 - `/dev/uinput` permission setup remains necessary. Native gesture availability
   depends on libinput and the desktop compositor.
-- HTTP/WebSocket traffic is unencrypted: use a trusted LAN.
+- HTTP/WebSocket traffic is unencrypted unless Secure connection (HTTPS) is on:
+  use a trusted LAN.
+- Desktop audio needs `pw-record` (PipeWire) or `parec` (PulseAudio) on the host;
+  the phone microphone needs PipeWire's `pw-cat`. These host tools are not bundled.
 
 The old 0.1.6 Fedora-built AppImage fails to load on Ubuntu 22.04 due to newer
 glibc symbol requirements. The portable 0.1.7 artifact passes on that same base.

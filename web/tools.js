@@ -4,6 +4,7 @@
 const GLIDE_TOOLS=Object.freeze([
     Object.freeze({id:'touchpad',name:'Touchpad',description:'Move, scroll and navigate',pinnable:false}),
     Object.freeze({id:'numpad',name:'Number pad',description:'Digits and arithmetic keys for your desktop',pinnable:true}),
+    Object.freeze({id:'audio',name:'Audio',description:'Desktop sound on this device and phone microphone',pinnable:true}),
 ]);
 const NUMPAD_KEYS=Object.freeze([
     {key:'backspace',label:'Backspace',symbol:'⌫'}, {key:'delete',label:'Delete',symbol:'Del'},

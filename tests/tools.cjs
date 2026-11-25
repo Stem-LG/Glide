@@ -10,7 +10,7 @@ test('unknown tools, duplicates and non-pinnable entries are not accepted',()=>{
  const t=new GlideTools(['numpad','numpad','touchpad','shell']);assert.deepEqual(t.pins,['numpad']);
  assert.equal(t.select('shell'),false);assert.equal(t.pin('touchpad',true),false);
  assert.equal(t.active,'touchpad');t.setPins([]);assert.deepEqual(t.pins,[]);
- assert.equal(GLIDE_TOOLS.filter(t=>t.pinnable).length,1);
+ assert.equal(GLIDE_TOOLS.filter(t=>t.pinnable).length,2);
 });
 test('numeric layout has one copy of every digit and required editing/arithmetic keys',()=>{
  const keys=NUMPAD_KEYS.map(k=>k.key);assert.equal(new Set(keys).size,keys.length);

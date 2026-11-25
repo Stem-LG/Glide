@@ -38,11 +38,23 @@ pub struct Shared {
     pub address: String,
     pub attempts: HashMap<IpAddr, (Instant, u8)>,
     pub helper: Option<mpsc::Sender<Frame>>,
+    pub audio_listener: bool,
+    pub microphone: bool,
+    pub preview: bool,
+    pub https: bool,
+    pub port: u16,
 }
 pub type AppState = Arc<Mutex<Shared>>;
 impl Shared {
+    /// Switches the advertised address; the listener follows on the next connection.
+    pub fn set_https(&mut self, https: bool) {
+        self.https = https;
+        let scheme = if https { "https" } else { "http" };
+        self.address = format!("{scheme}://{}:{}", lan_ip(), self.port);
+    }
     pub fn new(config: Config, port: u16) -> Self {
-        Self {
+        let https = config.https;
+        let mut shared = Self {
             config,
             pairing_code: format!("{:06}", rand::random_range(0..1000000)),
             pairing: true,
@@ -50,10 +62,17 @@ impl Shared {
             connected: None,
             status: "Starting…".into(),
             input_feedback: None,
-            address: format!("http://{}:{port}", lan_ip()),
+            address: String::new(),
             attempts: HashMap::new(),
             helper: None,
-        }
+            audio_listener: false,
+            microphone: false,
+            preview: false,
+            https: false,
+            port,
+        };
+        shared.set_https(https);
+        shared
     }
 }
 pub fn lan_ip() -> IpAddr {
@@ -73,7 +92,7 @@ fn same_origin(headers: &HeaderMap) -> bool {
     headers
         .get("origin")
         .and_then(|s| s.to_str().ok())
-        .is_some_and(|o| o == format!("http://{host}"))
+        .is_some_and(|o| o == format!("http://{host}") || o == format!("https://{host}"))
 }
 #[derive(Deserialize)]
 struct Pair {
@@ -155,6 +174,7 @@ async fn pair(
 #[derive(Deserialize)]
 struct Hello {
     token: String,
+    rate: Option<u32>,
 }
 async fn ws(
     State(state): State<AppState>,
@@ -281,6 +301,189 @@ async fn connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
     let _ = ws.send(Message::Close(None)).await;
 }
 
+async fn audio_ws(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    upgrade: WebSocketUpgrade,
+) -> Response {
+    if !same_origin(&headers) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    upgrade
+        .max_message_size(1024)
+        .max_frame_size(1024)
+        .on_upgrade(move |ws| audio_connection(ws, state))
+        .into_response()
+}
+/// Desktop audio rides its own socket so a congested stream can never delay
+/// touch input. It is only served to the device that currently owns input.
+async fn audio_connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
+    let hello = tokio::time::timeout(Duration::from_secs(5), ws.recv()).await;
+    let Ok(Some(Ok(Message::Text(text)))) = hello else {
+        return;
+    };
+    let Ok(hello) = serde_json::from_str::<Hello>(&text) else {
+        return;
+    };
+    let hash = config::digest(&hello.token);
+    let allowed = |s: &Shared| {
+        s.enabled
+            && s.config.devices.iter().any(|d| {
+                d.hash == hash
+                    && d.settings.audio
+                    && s.connected.as_ref().is_some_and(|(id, _)| id == &d.id)
+            })
+    };
+    let preview = {
+        let mut s = state.lock().unwrap();
+        if s.audio_listener || !allowed(&s) {
+            None
+        } else {
+            s.audio_listener = true;
+            Some(s.preview)
+        }
+    };
+    let Some(preview) = preview else {
+        let _ = ws
+            .send(Message::Text(
+                json!({"error":"Desktop audio is unavailable for this device."})
+                    .to_string()
+                    .into(),
+            ))
+            .await;
+        return;
+    };
+    // About 80 ms of queue; the recorder drops frames beyond that.
+    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(8);
+    let mut recorder = tokio::spawn(crate::audio::run(tx, preview));
+    let mut ticker = tokio::time::interval(Duration::from_millis(250));
+    let format = json!({"audio":{"rate":crate::audio::RATE,"channels":crate::audio::CHANNELS}});
+    if ws
+        .send(Message::Text(format.to_string().into()))
+        .await
+        .is_ok()
+    {
+        loop {
+            tokio::select! {
+                _ = ticker.tick() => {
+                    if !allowed(&state.lock().unwrap()) { break; }
+                },
+                frame = rx.recv() => {
+                    let Some(frame) = frame else {
+                        let reason = match (&mut recorder).await {
+                            Ok(Err(e)) => e.to_string(),
+                            _ => "Desktop audio stopped".into(),
+                        };
+                        let _ = ws.send(Message::Text(json!({"error":reason}).to_string().into())).await;
+                        break;
+                    };
+                    if ws.send(Message::Binary(frame.into())).await.is_err() { break; }
+                },
+                msg = ws.recv() => {
+                    if !matches!(msg, Some(Ok(Message::Ping(_) | Message::Pong(_)))) { break; }
+                }
+            }
+        }
+    }
+    recorder.abort();
+    state.lock().unwrap().audio_listener = false;
+    let _ = ws.send(Message::Close(None)).await;
+}
+
+async fn mic_ws(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    upgrade: WebSocketUpgrade,
+) -> Response {
+    if !same_origin(&headers) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    upgrade
+        .max_message_size(8192)
+        .max_frame_size(8192)
+        .on_upgrade(move |ws| mic_connection(ws, state))
+        .into_response()
+}
+/// Phone microphone: mono PCM frames from the input owner feed a virtual
+/// desktop microphone that exists only while this socket is open.
+async fn mic_connection(mut ws: axum::extract::ws::WebSocket, state: AppState) {
+    let hello = tokio::time::timeout(Duration::from_secs(5), ws.recv()).await;
+    let Ok(Some(Ok(Message::Text(text)))) = hello else {
+        return;
+    };
+    let Ok(hello) = serde_json::from_str::<Hello>(&text) else {
+        return;
+    };
+    let hash = config::digest(&hello.token);
+    let rate = hello.rate.unwrap_or(crate::audio::RATE);
+    let allowed = |s: &Shared| {
+        s.enabled
+            && s.config.devices.iter().any(|d| {
+                d.hash == hash
+                    && d.settings.microphone
+                    && s.connected.as_ref().is_some_and(|(id, _)| id == &d.id)
+            })
+    };
+    let preview = {
+        let mut s = state.lock().unwrap();
+        if s.microphone || !allowed(&s) || !(8000..=96000).contains(&rate) {
+            None
+        } else {
+            s.microphone = true;
+            Some(s.preview)
+        }
+    };
+    let Some(preview) = preview else {
+        let _ = ws
+            .send(Message::Text(
+                json!({"error":"The microphone is unavailable for this device."})
+                    .to_string()
+                    .into(),
+            ))
+            .await;
+        return;
+    };
+    // Preview mode accepts and discards frames without touching the desktop.
+    let child = if preview {
+        Ok(None)
+    } else {
+        crate::audio::microphone(rate).map(Some)
+    };
+    match child {
+        Err(e) => {
+            let _ = ws
+                .send(Message::Text(
+                    json!({"error":e.to_string()}).to_string().into(),
+                ))
+                .await;
+        }
+        Ok(mut child) => {
+            let mut stdin = child.as_mut().and_then(|c| c.stdin.take());
+            let mut ticker = tokio::time::interval(Duration::from_millis(250));
+            let started = json!({"mic":{"rate":rate}}).to_string();
+            if ws.send(Message::Text(started.into())).await.is_ok() {
+                loop {
+                    tokio::select! {
+                        _ = ticker.tick() => {
+                            if !allowed(&state.lock().unwrap()) { break; }
+                        },
+                        msg = ws.recv() => match msg {
+                            Some(Ok(Message::Binary(frame))) if frame.len() % 2 == 0 => {
+                                if let Some(stdin) = &mut stdin
+                                    && stdin.write_all(&frame).await.is_err() { break; }
+                            }
+                            Some(Ok(Message::Ping(_) | Message::Pong(_))) => {}
+                            _ => break,
+                        }
+                    }
+                }
+            }
+        }
+    }
+    state.lock().unwrap().microphone = false;
+    let _ = ws.send(Message::Close(None)).await;
+}
+
 pub fn save_settings(s: &mut Shared, id: &str, settings: DeviceSettings) -> Result<()> {
     settings.validate()?;
     let mut next = s.config.clone();
@@ -344,6 +547,7 @@ async fn input_task(state: AppState, preview: bool) -> Result<()> {
 }
 pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await?;
+    state.lock().unwrap().preview = preview;
     state.lock().unwrap().status = if preview {
         "Preview mode — no desktop input"
     } else {
@@ -430,6 +634,30 @@ pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
             }),
         )
         .route(
+            "/audio.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/audio.js"),
+                )
+            }),
+        )
+        .route(
+            "/audio-ui.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/audio-ui.js"),
+                )
+            }),
+        )
+        .route(
             "/style.css",
             get(|| async {
                 (
@@ -440,16 +668,98 @@ pub async fn run(state: AppState, port: u16, preview: bool) -> Result<()> {
         )
         .route("/api/pair", post(pair))
         .route("/ws", get(ws))
+        .route("/audio", get(audio_ws))
+        .route("/mic", get(mic_ws))
+        .route(
+            "/mic-worklet.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/mic-worklet.js"),
+                )
+            }),
+        )
+        .route(
+            "/mic-ui.js",
+            get(|| async {
+                (
+                    [
+                        ("content-type", "text/javascript"),
+                        ("cache-control", "no-store"),
+                    ],
+                    include_str!("../web/mic-ui.js"),
+                )
+            }),
+        )
         .route(
             "/health",
             get(|| async { Json(json!({"app":"Glide","version":env!("CARGO_PKG_VERSION")})) }),
         )
         .layer(axum::extract::DefaultBodyLimit::max(8192))
         .with_state(state.clone());
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await?;
-    Ok(())
+    // Phones that still open the plain address are sent to the secure one.
+    let redirect = Router::new().fallback(|headers: HeaderMap, uri: axum::http::Uri| async move {
+        match headers.get("host").and_then(|h| h.to_str().ok()) {
+            Some(host) => {
+                axum::response::Redirect::temporary(&format!("https://{host}{uri}")).into_response()
+            }
+            None => StatusCode::BAD_REQUEST.into_response(),
+        }
+    });
+    let mut acceptor = None;
+    loop {
+        let Ok((stream, peer)) = listener.accept().await else {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            continue;
+        };
+        // Touch and audio frames are small and time-critical; never batch them.
+        let _ = stream.set_nodelay(true);
+        let https = state.lock().unwrap().https;
+        if https && acceptor.is_none() {
+            match crate::tls::acceptor(lan_ip()) {
+                Ok(tls) => acceptor = Some(tls),
+                Err(e) => {
+                    let mut s = state.lock().unwrap();
+                    s.status = format!("Secure connection unavailable: {e}");
+                    s.set_https(false);
+                }
+            }
+        }
+        let tls = acceptor.clone().filter(|_| https);
+        let (app, redirect) = (app.clone(), redirect.clone());
+        tokio::spawn(async move {
+            // One port serves both: a TLS handshake always starts with 0x16.
+            let mut first = [0u8; 1];
+            let wait = Duration::from_secs(10);
+            let Ok(Ok(1)) = tokio::time::timeout(wait, stream.peek(&mut first)).await else {
+                return;
+            };
+            match (first[0] == 0x16, tls) {
+                (true, Some(tls)) => {
+                    if let Ok(Ok(stream)) = tokio::time::timeout(wait, tls.accept(stream)).await {
+                        serve(stream, peer, app).await;
+                    }
+                }
+                (true, None) => {}
+                (false, Some(_)) => serve(stream, peer, redirect).await,
+                (false, None) => serve(stream, peer, app).await,
+            }
+        });
+    }
+}
+async fn serve<S>(stream: S, peer: SocketAddr, app: Router)
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    let service = hyper::service::service_fn(move |mut request: hyper::Request<_>| {
+        request.extensions_mut().insert(ConnectInfo(peer));
+        tower::ServiceExt::oneshot(app.clone(), request)
+    });
+    let _ = hyper::server::conn::http1::Builder::new()
+        .serve_connection(hyper_util::rt::TokioIo::new(stream), service)
+        .with_upgrades()
+        .await;
 }

@@ -23,6 +23,8 @@ pub struct DeviceSettings {
     pub show_points: bool,
     pub haptics: bool,
     pub media_controls: bool,
+    pub audio: bool,
+    pub microphone: bool,
     pub haptic_duration_ms: u16,
     pub theme: String,
     pub pinned_tools: Vec<String>,
@@ -35,6 +37,8 @@ impl Default for DeviceSettings {
             show_points: false,
             haptics: true,
             media_controls: false,
+            audio: false,
+            microphone: false,
             haptic_duration_ms: 25,
             theme: "system".into(),
             pinned_tools: vec!["numpad".into()],
@@ -50,8 +54,10 @@ impl DeviceSettings {
                 && (0.25..=2.0).contains(&self.scroll_speed)
                 && (5..=100).contains(&self.haptic_duration_ms)
                 && ["system", "dark", "light"].contains(&self.theme.as_str())
-                && self.pinned_tools.len() <= 1
-                && self.pinned_tools.iter().all(|id| id == "numpad"),
+                && self.pinned_tools.iter().enumerate().all(|(i, id)| {
+                    ["numpad", "audio"].contains(&id.as_str())
+                        && !self.pinned_tools[..i].contains(id)
+                }),
             "Invalid device settings"
         );
         Ok(())
@@ -63,6 +69,7 @@ pub struct Config {
     pub devices: Vec<Device>,
     pub background: bool,
     pub autostart: bool,
+    pub https: bool,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -70,6 +77,7 @@ impl Default for Config {
             devices: vec![],
             background: true,
             autostart: false,
+            https: false,
         }
     }
 }
@@ -168,6 +176,8 @@ mod tests {
         .unwrap();
         assert!(settings.haptics);
         assert!(!settings.media_controls);
+        assert!(!settings.audio);
+        assert!(!settings.microphone);
         assert_eq!(settings.haptic_duration_ms, 25);
         assert_eq!(settings.pinned_tools, vec!["numpad"]);
         assert_eq!(settings.cursor_speed, 1.5);

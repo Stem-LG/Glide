@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.10 — 2026-11-25
+
+- Optional desktop audio: hear the computer's sound on the connected phone or tablet.
+  Saved per device, off by default, and available in the web controller and desktop app.
+- A pinnable **Audio** tool holds both switches, with live delay and buffer figures;
+  status chips appear on the touchpad while audio or the microphone is on.
+- Audio uses its own connection so a slow stream cannot delay touch input. It needs
+  `pw-record` (PipeWire) or `parec` (PulseAudio) on the desktop.
+- Optional phone microphone: the connected device appears on the desktop as the
+  "Glide phone microphone" input while the setting is on. Needs PipeWire (`pw-cat`).
+- Optional **Secure connection (HTTPS)** on the same port, with a self-signed
+  certificate kept in Glide's config directory. Required for the microphone; phones
+  accept a certificate warning once and pair again (settings can be restored).
+  `--https` turns it on for a headless run.
+
 ## 0.1.9 — 2026-11-02
 
 - Desktop number-pad input with native keypad, editing and arithmetic keys.

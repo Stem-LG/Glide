@@ -8,6 +8,8 @@ rows=list(csv.DictReader((out/'native-packages.tsv').open(),delimiter='\t'))
 packages=sorted({(r['source_package'],r['source_version']) for r in rows})
 subprocess.run(['apt-get','update'],check=True)
 for name,version in packages:
+ # Superseded versions leave the mirrors; reuse exact copies fetched for an earlier build.
+ if (bundle/'native'/f"{name}_{version.split(':',1)[-1]}.dsc").exists():continue
  subprocess.run(['apt-get','source','--download-only',f'{name}={version}'],cwd=bundle/'native',check=True)
 upstream=bundle/'upstream';upstream.mkdir(exist_ok=True)
 for r in json.loads((root/'scripts/portable/sources.json').read_text()):

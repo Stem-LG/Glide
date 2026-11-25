@@ -121,17 +121,18 @@ fn build_window(
     copy.set_tooltip_text(Some("Copy address"));
     copy.set_valign(gtk::Align::Center);
     address.add_suffix(&copy);
-    let addr = state.lock().unwrap().address.clone();
+    let addr = state.clone();
     copy.connect_clicked(move |b| {
-        b.clipboard().set_text(&addr);
+        b.clipboard().set_text(&addr.lock().unwrap().address);
     });
     connection.add(&address);
     let qr_button = gtk::Button::with_label("Show QR code");
     qr_button.set_valign(gtk::Align::Center);
     address.add_suffix(&qr_button);
-    let qr_address = state.lock().unwrap().address.clone();
+    let qr_state = state.clone();
     let parent = window.clone();
     qr_button.connect_clicked(move |_| {
+        let qr_address = qr_state.lock().unwrap().address.clone();
         if let Err(e) = show_qr(&parent, &qr_address) {
             error(&parent, &e.to_string());
         }
@@ -176,6 +177,12 @@ fn build_window(
         .active(state.lock().unwrap().config.autostart)
         .build();
     preferences.add(&startup);
+    let secure = adw::SwitchRow::builder()
+        .title("Secure connection (HTTPS)")
+        .subtitle("Needed for the phone microphone. Phones show a certificate warning once and pair again")
+        .active(state.lock().unwrap().https)
+        .build();
+    preferences.add(&secure);
     body.append(&preferences);
     let note = gtk::Label::new(Some("Private to your network · No account needed"));
     note.add_css_class("dim-label");
@@ -221,6 +228,19 @@ fn build_window(
         }
     });
     let s = state.clone();
+    let w = window.clone();
+    secure.connect_active_notify(move |r| {
+        {
+            let mut s = s.lock().unwrap();
+            if r.is_active() == s.https {
+                return;
+            }
+            s.config.https = r.is_active();
+            s.set_https(r.is_active());
+        }
+        save(&s, &w);
+    });
+    let s = state.clone();
     let app_close = app.clone();
     window.connect_close_request(move |w| {
         if s.lock().unwrap().config.background {
@@ -261,6 +281,11 @@ fn build_window(
     glib::timeout_add_local(Duration::from_millis(400), move || {
         if weak.upgrade().is_none() {
             return glib::ControlFlow::Break;
+        }
+        {
+            let s = s.lock().unwrap();
+            address.set_subtitle(&s.address);
+            secure.set_active(s.https);
         }
         let (summary, pairing_on, pin, devices_snapshot, current) = {
             let s = s.lock().unwrap();
@@ -455,12 +480,30 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         .active(device.settings.media_controls)
         .build();
     group.add(&media_controls);
+    let audio = adw::SwitchRow::builder()
+        .title("Desktop audio")
+        .subtitle("Play this computer’s sound on the device while it is connected")
+        .active(device.settings.audio)
+        .build();
+    group.add(&audio);
+    let microphone = adw::SwitchRow::builder()
+        .title("Phone microphone")
+        .subtitle("Use the device as the “Glide phone microphone” input. Needs Secure connection")
+        .active(device.settings.microphone)
+        .build();
+    group.add(&microphone);
     let pin_numpad = adw::SwitchRow::builder()
         .title("Pin number pad")
         .subtitle("Show the number pad in the phone’s shortcut rail")
         .active(device.settings.pinned_tools.iter().any(|id| id == "numpad"))
         .build();
     group.add(&pin_numpad);
+    let pin_audio = adw::SwitchRow::builder()
+        .title("Pin audio")
+        .subtitle("Show the audio tool in the phone’s shortcut rail")
+        .active(device.settings.pinned_tools.iter().any(|id| id == "audio"))
+        .build();
+    group.add(&pin_audio);
     let haptics = adw::SwitchRow::builder()
         .title("Tap feedback")
         .subtitle("Brief vibration on supported phones and browsers")
@@ -512,7 +555,10 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     let d = dots.clone();
     let h = haptics.clone();
     let media = media_controls.clone();
+    let sound = audio.clone();
+    let mic = microphone.clone();
     let pin = pin_numpad.clone();
+    let pin_sound = pin_audio.clone();
     let duration = pulse.clone();
     let t = theme.clone();
     let msg = message.clone();
@@ -526,11 +572,16 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
             show_points: d.is_active(),
             haptics: h.is_active(),
             media_controls: media.is_active(),
-            pinned_tools: if pin.is_active() {
-                vec!["numpad".into()]
-            } else {
-                vec![]
-            },
+            audio: sound.is_active(),
+            microphone: mic.is_active(),
+            pinned_tools: [
+                ("numpad", pin.is_active()),
+                ("audio", pin_sound.is_active()),
+            ]
+            .into_iter()
+            .filter(|&(_, on)| on)
+            .map(|(id, _)| id.to_string())
+            .collect(),
             haptic_duration_ms: duration.value_as_int() as u16,
             theme: ["system", "dark", "light"][t.selected() as usize].into(),
         };
@@ -550,7 +601,13 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
     let cb = persist.clone();
     media_controls.connect_active_notify(move |_| cb());
     let cb = persist.clone();
+    audio.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    microphone.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
     pin_numpad.connect_active_notify(move |_| cb());
+    let cb = persist.clone();
+    pin_audio.connect_active_notify(move |_| cb());
     let cb = persist.clone();
     pulse.connect_value_changed(move |_| cb());
     theme.connect_selected_notify(move |_| persist());
@@ -582,7 +639,10 @@ fn show_device_settings(parent: &adw::ApplicationWindow, state: AppState, id: &s
         dots.set_active(settings.show_points);
         haptics.set_active(settings.haptics);
         media_controls.set_active(settings.media_controls);
+        audio.set_active(settings.audio);
+        microphone.set_active(settings.microphone);
         pin_numpad.set_active(settings.pinned_tools.iter().any(|id| id == "numpad"));
+        pin_audio.set_active(settings.pinned_tools.iter().any(|id| id == "audio"));
         if pulse.value_as_int() != i32::from(settings.haptic_duration_ms) {
             pulse.set_value(f64::from(settings.haptic_duration_ms));
         }
